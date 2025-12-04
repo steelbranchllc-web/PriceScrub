@@ -40,16 +40,31 @@ export type AnalyzedOffer = {
   estimatedFees?: number | null;
   estimatedShipping?: number | null;
   estimatedProfit?: number | null;
-  profitMarginPct?: number | null; // ROI vs avg market price
+  profitMarginPct?: number | null; // ROI vs market price
 
   discountPctVsMedian?: number | null;
 
   productMarketStats?: PriceStats | null;
   discountPctVsProductMedian?: number | null;
 
-  // NEW – AI-enriched demand info
+  // AI demand info
   demandLabel?: string | null; // "Low" | "Medium" | "High"
   estimatedSellTime?: string | null; // e.g. "3–7 days"
+
+  // AI “true value” logic for ALL categories
+  aiTrueValue?: number | null; // realistic resale value
+  aiConfidence?: number | null; // 0–1
+  aiDemandScore?: number | null; // 1–5
+  aiSellTimeDaysMin?: number | null;
+  aiSellTimeDaysMax?: number | null;
+  aiShouldIgnore?: boolean | null; // obvious trash/mispriced
+
+  // AI authenticity / fake-product filtering
+  aiIsLikelyAuthentic?: boolean | null;
+  aiRiskLevel?: "low" | "medium" | "high" | null;
+  aiAuthenticityWarnings?: string[] | null;
+  aiAuthenticityExplanation?: string | null;
+  aiBlockFromResults?: boolean | null;
 
   raw?: any;
 };
@@ -247,6 +262,7 @@ async function fetchGoogleStatsForTitle(
   for (const item of results) {
     const itemTitle = (item.title || "").toString().toLowerCase();
 
+    // Size-aware filter when possible
     if (sizeToken && !itemTitle.includes(sizeToken.toLowerCase())) {
       continue;
     }
@@ -719,54 +735,70 @@ async function scrapeEbayListings(query: string): Promise<AnalyzedOffer[]> {
   return Array.from(uniqueMap.values());
 }
 
-// ---------- AI: demand + sell-time estimates ----------
-type DemandEstimate = {
+// ---------- AI: true value + demand + sell-time ----------
+type AiPricingResult = {
   id: string;
-  demand: string;
-  sellTime: string;
+  trueMarketPrice?: number | null;
+  confidence?: number | null;
+  demandLabel?: string | null;
+  demandScore?: number | null;
+  sellTimeLabel?: string | null;
+  sellTimeDaysMin?: number | null;
+  sellTimeDaysMax?: number | null;
+  ignore?: boolean | null;
 };
 
-async function getAiDemandEstimates(
+async function getAiPricingAndDemand(
   listings: AnalyzedOffer[]
-): Promise<Record<string, DemandEstimate>> {
+): Promise<Record<string, AiPricingResult>> {
   try {
     if (!OPENAI_API_KEY || listings.length === 0) return {};
 
-    const sample = listings.slice(0, 40); // keep tokens under control
+    const sample = listings.slice(0, 40);
 
     const compact = sample.map((l) => ({
       id: l.id,
       title: l.title,
       price: l.price,
       source: l.source,
-      avgMarket: l.productMarketStats?.average ?? null,
-      roiPct: l.profitMarginPct ?? null,
+      googleAvg: l.productMarketStats?.average ?? null,
+      googleDiscountPct: l.discountPctVsProductMedian ?? null,
     }));
 
     const prompt = `
-You are helping a reseller decide which items move quickly.
+You are an expert reseller and pricing analyst across ALL categories:
+- watches (luxury and mid-range)
+- sneakers and shoes
+- streetwear and designer clothing
+- golf clubs and sports equipment
+- electronics, collectibles, and other resale inventory.
 
-You will receive a JSON array of items with:
+You get a JSON array of items with:
 - id
 - title
-- price
-- avgMarket (average selling price)
-- roiPct (ROI vs avgMarket)
-- source
+- price (current listing price)
+- googleAvg (rough Google Shopping average)
+- googleDiscountPct (discount vs Google avg)
+- source (eBay, Facebook Marketplace, StockX, GOAT, etc.)
 
-For EACH item, estimate:
-- "demand": one of "Low", "Medium", "High"
-- "sellTime": one of "1-3 days", "3-7 days", "1-2 weeks", "2-4 weeks", "1-3 months"
+For EACH item, do this:
 
-Assume:
-- High ROI and many similar items in the market usually means faster churn.
-- Be conservative; don't say 1-3 days unless it's clearly hot.
+1. Estimate a realistic **trueMarketPrice**:
+   - This is what a serious buyer will actually pay in the current market, not some troll listing.
+   - Treat Google averages as a hint, but ignore clearly insane or one-off prices.
 
-Return ONLY a JSON array, no markdown, in the form:
-[
-  { "id": "...", "demand": "High", "sellTime": "3-7 days" },
-  ...
-]
+2. Work across categories and consider size/brand as context.
+
+3. Return:
+   - trueMarketPrice
+   - confidence (0–1)
+   - demandLabel ("Low" | "Medium" | "High")
+   - demandScore (1–5)
+   - sellTimeLabel ("1-3 days", "3-7 days", "1-2 weeks", "2-4 weeks", "1-3 months")
+   - sellTimeDaysMin / sellTimeDaysMax
+   - ignore (true if the listing should not be used at all).
+
+Return ONLY JSON array (no markdown).
 
 Items:
 ${JSON.stringify(compact)}
@@ -775,36 +807,197 @@ ${JSON.stringify(compact)}
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
-        { role: "system", content: "You are a precise resale demand estimator." },
+        {
+          role: "system",
+          content:
+            "You are a precise resale pricing engine for all categories, focused on realistic 'true value' and demand.",
+        },
         { role: "user", content: prompt },
       ],
-      max_tokens: 400,
+      max_tokens: 800,
       temperature: 0.3,
     });
 
     const content = completion.choices[0]?.message?.content ?? "[]";
 
-    let parsed: DemandEstimate[] = [];
+    let parsed: AiPricingResult[] = [];
+
     try {
-      parsed = JSON.parse(content);
+      let clean = content?.trim() || "";
+
+      clean = clean.replace(/```json/gi, "").replace(/```/g, "").trim();
+      const firstBracket = clean.indexOf("[");
+      const lastBracket = clean.lastIndexOf("]");
+
+      if (firstBracket !== -1 && lastBracket !== -1) {
+        clean = clean.substring(firstBracket, lastBracket + 1);
+      }
+
+      parsed = JSON.parse(clean) as AiPricingResult[];
+
+      if (!Array.isArray(parsed)) {
+        console.warn("AI pricing JSON was not an array. Returning empty map.");
+        parsed = [];
+      }
     } catch (err) {
-      console.error("Failed to parse AI demand JSON:", err, content);
-      return {};
+      console.error("❌ Failed to parse AI pricing JSON:", err, content);
+      parsed = [];
     }
 
-    const map: Record<string, DemandEstimate> = {};
+    const map: Record<string, AiPricingResult> = {};
     for (const row of parsed) {
       if (!row || !row.id) continue;
       map[row.id] = {
         id: row.id,
-        demand: row.demand ?? null,
-        sellTime: row.sellTime ?? null,
+        trueMarketPrice:
+          typeof row.trueMarketPrice === "number"
+            ? row.trueMarketPrice
+            : null,
+        confidence:
+          typeof row.confidence === "number" ? row.confidence : null,
+        demandLabel: row.demandLabel ?? null,
+        demandScore:
+          typeof row.demandScore === "number" ? row.demandScore : null,
+        sellTimeLabel: row.sellTimeLabel ?? null,
+        sellTimeDaysMin:
+          typeof row.sellTimeDaysMin === "number"
+            ? row.sellTimeDaysMin
+            : null,
+        sellTimeDaysMax:
+          typeof row.sellTimeDaysMax === "number"
+            ? row.sellTimeDaysMax
+            : null,
+        ignore: !!row.ignore,
       };
     }
 
     return map;
   } catch (err) {
-    console.error("OpenAI demand estimate error:", err);
+    console.error("OpenAI pricing/demand error:", err);
+    return {};
+  }
+}
+
+// ---------- AI: authenticity / fake-product filter ----------
+type AiAuthenticityResult = {
+  id: string;
+  isLikelyAuthentic?: boolean | null;
+  riskLevel?: "low" | "medium" | "high" | null;
+  warnings?: string[] | null;
+  explanation?: string | null;
+  blockFromResults?: boolean | null;
+};
+
+async function getAiAuthenticityJudgments(
+  listings: AnalyzedOffer[]
+): Promise<Record<string, AiAuthenticityResult>> {
+  try {
+    if (!OPENAI_API_KEY || listings.length === 0) return {};
+
+    const sample = listings.slice(0, 40);
+
+    const compact = sample.map((l) => ({
+      id: l.id,
+      title: l.title,
+      price: l.price,
+      source: l.source,
+      url: l.url,
+      googleAvg: l.productMarketStats?.average ?? null,
+      discountPct:
+        l.discountPctVsProductMedian ?? l.discountPctVsMedian ?? null,
+    }));
+
+    const prompt = `
+You are the Authenticity & Fraud Detection Engine for a flipping marketplace.
+
+You get a JSON array of items with:
+- id
+- title
+- price
+- source
+- url
+- googleAvg
+- discountPct
+
+Detect obvious fakes/scams, especially luxury and hype items.
+Be aggressive. If it looks wrong, treat risk as HIGH.
+
+Return ONLY JSON array with:
+- id
+- isLikelyAuthentic (true/false)
+- riskLevel ("low" | "medium" | "high")
+- warnings (string[])
+- explanation (string)
+- blockFromResults (true/false)
+
+Items:
+${JSON.stringify(compact)}
+`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a strict authenticity filter. Prioritize protecting users from fakes and scams.",
+        },
+        { role: "user", content: prompt },
+      ],
+      max_tokens: 800,
+      temperature: 0.1,
+    });
+
+    const content = completion.choices[0]?.message?.content ?? "[]";
+
+    let parsed: AiAuthenticityResult[] = [];
+
+    try {
+      let clean = content?.trim() || "";
+      clean = clean.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+      const firstBracket = clean.indexOf("[");
+      const lastBracket = clean.lastIndexOf("]");
+
+      if (firstBracket !== -1 && lastBracket !== -1) {
+        clean = clean.substring(firstBracket, lastBracket + 1);
+      }
+
+      parsed = JSON.parse(clean) as AiAuthenticityResult[];
+
+      if (!Array.isArray(parsed)) {
+        console.warn(
+          "AI authenticity JSON was not an array. Returning empty map."
+        );
+        parsed = [];
+      }
+    } catch (err) {
+      console.error("❌ Failed to parse AI authenticity JSON:", err, content);
+      parsed = [];
+    }
+
+    const map: Record<string, AiAuthenticityResult> = {};
+    for (const row of parsed) {
+      if (!row || !row.id) continue;
+      map[row.id] = {
+        id: row.id,
+        isLikelyAuthentic:
+          typeof row.isLikelyAuthentic === "boolean"
+            ? row.isLikelyAuthentic
+            : null,
+        riskLevel: row.riskLevel ?? null,
+        warnings: Array.isArray(row.warnings) ? row.warnings : null,
+        explanation: row.explanation ?? null,
+        blockFromResults:
+          typeof row.blockFromResults === "boolean"
+            ? row.blockFromResults
+            : null,
+      };
+    }
+
+    return map;
+  } catch (err) {
+    console.error("OpenAI authenticity error:", err);
     return {};
   }
 }
@@ -859,7 +1052,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 🔁 Global dedupe across all sources so IDs are unique
+    // 🔁 Global dedupe
     const dedupedMap = new Map<string, AnalyzedOffer>();
     for (const l of listings) {
       const id = l.id || String(l.url);
@@ -878,7 +1071,7 @@ export async function POST(req: Request) {
       enrichedListings.length
     );
 
-    // Google analytics: per-listing market avg & ROI vs avg
+    // Google analytics
     const listingsWithGoogle = await Promise.all(
       enrichedListings.map(async (l) => {
         if (!l.title || l.price == null) return l;
@@ -933,12 +1126,8 @@ export async function POST(req: Request) {
       listingsWithGoogle.length
     );
 
-    // 🧹 Filter out bad listings:
-    // - no price
-    // - no ROI
-    // - ROI <= 0
-    // - extreme outliers vs market average
-    const filteredListings = listingsWithGoogle.filter((l) => {
+    // 🧹 Basic pre-AI filter
+    const prelimFilteredListings = listingsWithGoogle.filter((l) => {
       const price = l.price;
       const avg = l.productMarketStats?.average ?? null;
 
@@ -953,7 +1142,94 @@ export async function POST(req: Request) {
     });
 
     console.log(
-      "🧹 After ROI + outlier filter, listings count:",
+      "🧹 After ROI + outlier filter (pre-AI), listings count:",
+      prelimFilteredListings.length
+    );
+
+    // 🤖 AI authenticity + pricing
+    const authenticityMap = await getAiAuthenticityJudgments(
+      prelimFilteredListings
+    );
+    const aiMap = await getAiPricingAndDemand(prelimFilteredListings);
+
+    // Merge AI data
+    const listingsWithAi = prelimFilteredListings.map((l) => {
+      const ai = aiMap[l.id];
+      const auth = authenticityMap[l.id];
+
+      const price = l.price ?? 0;
+      const baseFees =
+        l.estimatedFees != null ? l.estimatedFees : price * PLATFORM_FEE_RATE;
+      const baseShipping =
+        l.estimatedShipping != null ? l.estimatedShipping : SHIPPING_ESTIMATE;
+
+      let aiProfit: number | null = l.estimatedProfit ?? null;
+      let aiRoi: number | null = l.profitMarginPct ?? null;
+
+      if (ai?.trueMarketPrice != null && price > 0) {
+        const profit = ai.trueMarketPrice - price - baseFees - baseShipping;
+        const roi = (profit / price) * 100;
+        aiProfit = profit;
+        aiRoi = roi;
+      }
+
+      const effectiveAvg =
+        ai?.trueMarketPrice ??
+        l.productMarketStats?.average ??
+        null;
+
+      const discountPct =
+        effectiveAvg && price > 0
+          ? ((effectiveAvg - price) / effectiveAvg) * 100
+          : l.discountPctVsProductMedian ?? l.discountPctVsMedian ?? null;
+
+      return {
+        ...l,
+        estimatedFees: baseFees,
+        estimatedShipping: baseShipping,
+        estimatedProfit: aiProfit,
+        profitMarginPct: aiRoi,
+        productMarketStats: {
+          ...(l.productMarketStats || {
+            median: null,
+            min: null,
+            max: null,
+            average: null,
+          }),
+          average: effectiveAvg,
+        },
+        discountPctVsProductMedian: discountPct,
+        discountPctVsMedian: discountPct,
+        aiTrueValue: ai?.trueMarketPrice ?? null,
+        aiConfidence: ai?.confidence ?? null,
+        aiDemandScore: ai?.demandScore ?? null,
+        aiSellTimeDaysMin: ai?.sellTimeDaysMin ?? null,
+        aiSellTimeDaysMax: ai?.sellTimeDaysMax ?? null,
+        aiShouldIgnore: ai?.ignore ?? false,
+        demandLabel: ai?.demandLabel ?? l.demandLabel ?? null,
+        estimatedSellTime: ai?.sellTimeLabel ?? l.estimatedSellTime ?? null,
+        aiIsLikelyAuthentic: auth?.isLikelyAuthentic ?? null,
+        aiRiskLevel: auth?.riskLevel ?? null,
+        aiAuthenticityWarnings: auth?.warnings ?? null,
+        aiAuthenticityExplanation: auth?.explanation ?? null,
+        aiBlockFromResults: auth?.blockFromResults ?? null,
+      };
+    });
+
+    // 🧹 FINAL FILTER:
+    // - drop AI-ignore
+    // - drop authenticity blocks/high risk
+    // - drop 0% or negative ROI
+    const filteredListings = listingsWithAi.filter((l) => {
+      if (l.aiShouldIgnore) return false;
+      if (l.aiBlockFromResults) return false;
+      if (l.aiRiskLevel === "high") return false;
+      if (l.profitMarginPct == null || l.profitMarginPct <= 0) return false;
+      return true;
+    });
+
+    console.log(
+      "🧹 After AI ignore + authenticity + ROI>0 filter, listings count:",
       filteredListings.length
     );
 
@@ -968,20 +1244,8 @@ export async function POST(req: Request) {
       overall: filteredOverall,
     };
 
-    // 🤖 AI demand estimates for the top items
-    const demandMap = await getAiDemandEstimates(filteredListings);
-
-    const listingsWithDemand = filteredListings.map((l) => {
-      const d = demandMap[l.id];
-      return {
-        ...l,
-        demandLabel: d?.demand ?? null,
-        estimatedSellTime: d?.sellTime ?? null,
-      };
-    });
-
     const res: SearchResponse = {
-      listings: listingsWithDemand,
+      listings: filteredListings,
       issues: issues.length ? issues : undefined,
       priceStats: filteredStats,
     };
