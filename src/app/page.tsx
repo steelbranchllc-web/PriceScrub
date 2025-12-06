@@ -36,11 +36,14 @@ type BaseAnalyzedOffer = {
   // AI demand info
   demandLabel?: string | null;
   estimatedSellTime?: string | null;
+
+  // AI estimated value (true market value)
+  aiEstimatedValue?: number | null;
 };
 
 type EnrichedOffer = BaseAnalyzedOffer & {
-  profitVsAvg?: number | null; // avg sell price - price
-  roiVsAvg?: number | null; // (avg sell price - price) / price * 100
+  profitVsAvg?: number | null; // est. value - price
+  roiVsAvg?: number | null; // (est. value - price) / price * 100
 };
 
 type SearchResponse = {
@@ -113,27 +116,48 @@ export default function HomePage() {
       });
 
       const data: SearchResponse = await res.json();
-      if (!res.ok) throw new Error((data as any).error || "Failed to fetch offers");
+      if (!res.ok)
+        throw new Error((data as any).error || "Failed to fetch offers");
 
-      // Enrich with profit / ROI vs avg
+      // Enrich with profit / ROI vs AI est. value
       let enriched: EnrichedOffer[] = (data.listings || []).map((offer) => {
-        const average = offer.productMarketStats?.average ?? null;
+        // ONLY use per-listing AI value or that listing's own product average.
+        const estValue =
+          typeof offer.aiEstimatedValue === "number"
+            ? offer.aiEstimatedValue
+            : offer.productMarketStats?.average != null
+            ? offer.productMarketStats.average
+            : null;
+
         let profitVsAvg: number | null = null;
         let roiVsAvg: number | null = null;
 
-        if (offer.price != null && average != null && offer.price !== 0) {
-          profitVsAvg = average - offer.price;
+        if (offer.price != null && estValue != null && offer.price !== 0) {
+          profitVsAvg = estValue - offer.price;
           roiVsAvg = (profitVsAvg / offer.price) * 100;
         }
 
-        return { ...offer, profitVsAvg, roiVsAvg };
+        return {
+          ...offer,
+          profitVsAvg,
+          roiVsAvg,
+          aiEstimatedValue: estValue,
+        };
       });
 
-      // 🔥 UI-level guard: drop 0% or negative ROI (or missing ROI/profit)
+      // 🔒 Drop listings with 0 or negative ROI, or broken math
       enriched = enriched.filter((offer) => {
-        if (offer.roiVsAvg == null || Number.isNaN(offer.roiVsAvg)) return false;
-        if (offer.profitVsAvg == null || Number.isNaN(offer.profitVsAvg)) return false;
-        return offer.roiVsAvg > 0 && offer.profitVsAvg > 0;
+        const roi = offer.roiVsAvg;
+        if (roi == null || Number.isNaN(roi as number) || roi <= 0) {
+          return false;
+        }
+        if (
+          offer.profitVsAvg != null &&
+          Number.isNaN(offer.profitVsAvg as number)
+        ) {
+          return false;
+        }
+        return true;
       });
 
       // Sort listings by ROI desc; if ROI missing, fall back to price asc
@@ -178,216 +202,231 @@ export default function HomePage() {
     "All sites";
 
   return (
-    <main
+    <div
+      className="page-root"
       style={{
         minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
         backgroundColor: "#f9fafb",
-        padding: "32px 16px 72px",
         fontFamily: "Georgia, 'Times New Roman', serif",
       }}
     >
-      <div
+      <main
         style={{
-          width: "100%",
-          maxWidth: 1120,
-          margin: "0 auto",
+          padding: "32px 16px 72px",
+          flex: 1,
         }}
       >
-        {/* TOP NAV / LOGO */}
-        <header
+        <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 40,
+            width: "100%",
+            maxWidth: 1120,
+            margin: "0 auto",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <img
-              src="/Logo.png"
-              alt="PriceScrub logo"
-              style={{ height: 115, objectFit: "contain" }}
-            />
-          </div>
-
-          {/* Auth buttons (Log In / Sign Up) */}
-          <div
+          {/* TOP NAV / LOGO */}
+          <header
             style={{
               display: "flex",
               alignItems: "center",
+              justifyContent: "space-between",
+              marginBottom: 40,
               gap: 12,
+              flexWrap: "wrap",
             }}
           >
-            <Link href="/login">
-              <button
-                type="button"
-                style={{
-                  padding: "12px 27px",
-                  borderRadius: 999,
-                  border: "1px solid #cbd5e1",
-                  background: "#ffffff",
-                  color: "#4b5563",
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
-                }}
-              >
-                Log In
-              </button>
-            </Link>
-            <Link href="/signup">
-              <button
-                type="button"
-                style={{
-                  padding: "12px 27px",
-                  borderRadius: 999,
-                  border: "1px solid #cbd5e1",
-                  background: "#f3f4f6",
-                  color: "#111827",
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
-                }}
-              >
-                Sign Up
-              </button>
-            </Link>
-          </div>
-        </header>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <img
+                src="/Logo.png"
+                alt="PriceScrub logo"
+                style={{ height: 70, objectFit: "contain" }}
+              />
+            </div>
 
-        {/* HERO SECTION */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0,1.1fr) minmax(0,1.1fr)",
-            gap: 40,
-            alignItems: "center",
-            marginBottom: 64,
-          }}
-        >
-          {/* Hero text */}
-          <div>
-            <h1
-              style={{
-                fontSize: 44,
-                lineHeight: 1.1,
-                marginBottom: 16,
-                color: "#111827",
-              }}
-            >
-              Turn Every Search
-              <br />
-              Into Profit.
-            </h1>
-            <p
-              style={{
-                fontSize: 16,
-                color: "#4b5563",
-                maxWidth: 480,
-                marginBottom: 24,
-              }}
-            >
-              PriceScrub scans listings across top marketplaces, throws out fake
-              comps, and uses AI to show only high-confidence, underpriced
-              opportunities.
-            </p>
-
-            <button
-              type="button"
-              onClick={() => {
-                const el = document.getElementById("analyzer");
-                if (el) el.scrollIntoView({ behavior: "smooth" });
-              }}
-              style={{
-                padding: "12px 24px",
-                borderRadius: 999,
-                border: "none",
-                background:
-                  "linear-gradient(120deg,#16a34a,#22c55e,#65a30d 90%)",
-                color: "white",
-                fontWeight: 700,
-                fontSize: 15,
-                cursor: "pointer",
-                boxShadow: "0 16px 35px rgba(34,197,94,0.45)",
-              }}
-            >
-              Launch PriceScrub AI
-            </button>
-          </div>
-
-          {/* Hero image card – image fills the whole box */}
-          <div
-            style={{
-              borderRadius: 40,
-              overflow: "hidden",
-              boxShadow: "0 28px 70px rgba(15,23,42,0.28)",
-              border: "1px solid #e5e7eb",
-              backgroundColor: "#ffffff",
-              height: 420,
-            }}
-          >
-            <img
-              src="/Hero.png"
-              alt="Flipper working on laptop"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: "block",
-              }}
-            />
-          </div>
-        </section>
-
-        {/* FEATURE STRIP: Search / Find / Flip */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-            gap: 32,
-            marginBottom: 64,
-          }}
-        >
-          <FeatureCard
-            title="Search"
-            description="Tell PriceScrub what you’re hunting for—from Jordan 1s to RTX cards—and where you want to source."
-            imageSrc="/search.png"
-          />
-          <FeatureCard
-            title="Find"
-            description="We scrub through real sold prices, kick out wild outliers, and calculate realistic resale value and ROI."
-            imageSrc="/find.png"
-          />
-          <FeatureCard
-            title="Flip"
-            description="See demand, estimated sell time, and your margin—so you only buy what moves in days, not months."
-            imageSrc="/flip.png"
-          />
-        </section>
-
-        {/* ANALYZER PANEL */}
-        <section id="analyzer">
-          <div
-            style={{
-              padding: 24,
-              borderRadius: 28,
-              backgroundColor: "#e5e7eb",
-              border: "1px solid #d1d5db",
-              boxShadow: "0 18px 45px rgba(15,23,42,0.12)",
-            }}
-          >
-            {/* Inner content card */}
+            {/* Auth buttons (Log In / Sign Up) */}
             <div
               style={{
-                borderRadius: 24,
-                backgroundColor: "#ffffff",
-                padding: 24,
-                boxShadow: "0 10px 30px rgba(148,163,184,0.35)",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <Link href="/login">
+                <button
+                  type="button"
+                  style={{
+                    padding: "12px 27px",
+                    borderRadius: 999,
+                    border: "1px solid #cbd5e1",
+                    background: "#ffffff",
+                    color: "#4b5563",
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
+                  }}
+                >
+                  Log In
+                </button>
+              </Link>
+              <Link href="/signup">
+                <button
+                  type="button"
+                  style={{
+                    padding: "12px 27px",
+                    borderRadius: 999,
+                    border: "1px solid #cbd5e1",
+                    background: "#f3f4f6",
+                    color: "#111827",
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
+                  }}
+                >
+                  Sign Up
+                </button>
+              </Link>
+            </div>
+          </header>
+
+          {/* HERO SECTION */}
+          <section
+            className="hero-section"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0,1.1fr) minmax(0,1.1fr)",
+              gap: 40,
+              alignItems: "center",
+              marginBottom: 64,
+            }}
+          >
+            {/* Hero text */}
+            <div>
+              <h1
+                style={{
+                  fontSize: 44,
+                  lineHeight: 1.1,
+                  marginBottom: 16,
+                  color: "#111827",
+                }}
+              >
+                Turn Every Search
+                <br />
+                Into Profit.
+              </h1>
+              <p
+                style={{
+                  fontSize: 16,
+                  color: "#4b5563",
+                  maxWidth: 480,
+                  marginBottom: 24,
+                }}
+              >
+                PriceScrub scans listings across top marketplaces, throws out fake
+                comps, and uses AI to show only high-confidence, underpriced
+                opportunities.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById("analyzer");
+                  if (el) el.scrollIntoView({ behavior: "smooth" });
+                }}
+                style={{
+                  padding: "12px 24px",
+                  borderRadius: 999,
+                  border: "none",
+                  background:
+                    "linear-gradient(120deg,#16a34a,#22c55e,#65a30d 90%)",
+                  color: "white",
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: "pointer",
+                  boxShadow: "0 16px 35px rgba(34,197,94,0.45)",
+                }}
+              >
+                Launch PriceScrub
+              </button>
+            </div>
+
+            {/* Hero image card – image fills the whole box */}
+            <div
+              style={{
+                borderRadius: 40,
+                overflow: "hidden",
+                boxShadow: "0 28px 70px rgba(15,23,42,0.28)",
                 border: "1px solid #e5e7eb",
+                backgroundColor: "#ffffff",
+                height: 420,
+              }}
+            >
+              <img
+                src="/Hero.png"
+                alt="Flipper working on laptop"
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            </div>
+          </section>
+
+          {/* FEATURE STRIP */}
+          <div
+            className="feature-strip"
+            style={{
+              backgroundColor: "#e5e7eb",
+              padding: "40px 32px",
+              borderRadius: 40,
+              border: "1px solid #d1d5db",
+              marginBottom: 64,
+              boxShadow: "0 20px 45px rgba(15,23,42,0.12)",
+            }}
+          >
+            <section
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+                gap: 32,
+              }}
+            >
+              <FeatureCard
+                title="Search"
+                description="Tell PriceScrub what you’re hunting for—from Jordan 1s to RTX cards—and where you want to source."
+                imageSrc="/search.png"
+              />
+              <FeatureCard
+                title="Find"
+                description="We scrub through real sold prices, kick out wild outliers, and calculate realistic resale value and ROI."
+                imageSrc="/find.png"
+              />
+              <FeatureCard
+                title="Flip"
+                description="See demand, estimated sell time, and your margin—so you only buy what moves in days, not months."
+                imageSrc="/flip.png"
+              />
+            </section>
+          </div>
+
+          {/* ANALYZER PANEL */}
+          <section id="analyzer">
+            <div
+              className="analyzer-card"
+              style={{
+                padding: 32,
+                borderRadius: 32,
+                backgroundColor: "#ffffff",
+                border: "1px solid #e5e7eb",
+                boxShadow: "0 26px 70px rgba(148,163,184,0.45)",
+                marginBottom: 80,
+                minHeight: 260,
               }}
             >
               {/* Analyzer header */}
@@ -397,14 +436,14 @@ export default function HomePage() {
                   justifyContent: "space-between",
                   flexWrap: "wrap",
                   gap: 10,
-                  marginBottom: 16,
+                  marginBottom: 20,
                   alignItems: "center",
                 }}
               >
                 <div>
                   <h2
                     style={{
-                      fontSize: 20,
+                      fontSize: 24,
                       margin: 0,
                       color: "#111827",
                     }}
@@ -418,11 +457,11 @@ export default function HomePage() {
               <form
                 onSubmit={handleSubmit}
                 style={{
-                  padding: 16,
-                  borderRadius: 18,
+                  padding: 20,
+                  borderRadius: 20,
                   backgroundColor: "#f9fafb",
                   border: "1px solid #e5e7eb",
-                  marginBottom: 16,
+                  marginBottom: 20,
                 }}
               >
                 <label
@@ -445,9 +484,9 @@ export default function HomePage() {
                   style={{
                     width: "100%",
                     marginTop: 8,
-                    marginBottom: 14,
-                    borderRadius: 12,
-                    padding: "12px 14px",
+                    marginBottom: 16,
+                    borderRadius: 14,
+                    padding: "14px 16px",
                     backgroundColor: "#ffffff",
                     border: "1px solid #d1d5db",
                     color: "#111827",
@@ -457,7 +496,7 @@ export default function HomePage() {
                 />
 
                 {/* SITES */}
-                <div style={{ marginBottom: 14 }}>
+                <div style={{ marginBottom: 16 }}>
                   <label
                     style={{
                       fontSize: 11,
@@ -516,17 +555,17 @@ export default function HomePage() {
                   disabled={loading}
                   style={{
                     width: "100%",
-                    padding: "12px 18px",
+                    padding: "13px 20px",
                     borderRadius: 999,
                     background:
                       "linear-gradient(120deg,#16a34a,#22c55e,#65a30d 90%)",
                     color: "#ffffff",
                     border: "none",
-                    fontSize: 15,
+                    fontSize: 16,
                     fontWeight: 700,
                     cursor: loading ? "default" : "pointer",
                     opacity: loading ? 0.9 : 1,
-                    boxShadow: "0 16px 40px rgba(22,163,74,0.5)",
+                    boxShadow: "0 18px 45px rgba(22,163,74,0.55)",
                   }}
                 >
                   {loading ? "Scrubbing the markets..." : "Search Listings"}
@@ -542,7 +581,7 @@ export default function HomePage() {
                     border: "1px solid #fecaca",
                     color: "#b91c1c",
                     borderRadius: 10,
-                    marginBottom: 14,
+                    marginBottom: 16,
                     fontSize: 13,
                   }}
                 >
@@ -554,9 +593,9 @@ export default function HomePage() {
               {summary && stats && (
                 <div
                   style={{
-                    marginBottom: 18,
-                    padding: 12,
-                    borderRadius: 16,
+                    marginBottom: 20,
+                    padding: 14,
+                    borderRadius: 18,
                     backgroundColor: "#f9fafb",
                     border: "1px solid #e5e7eb",
                   }}
@@ -579,12 +618,13 @@ export default function HomePage() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))",
+                      gridTemplateColumns:
+                        "repeat(auto-fit,minmax(160px,1fr))",
                       gap: 10,
                     }}
                   >
                     <SummaryCard
-                      label="Avg sell price"
+                      label="Avg est. value"
                       value={stats.overall.average}
                     />
                     <SummaryCard
@@ -618,11 +658,219 @@ export default function HomePage() {
                   </div>
                 </section>
               )}
+
+              {summary && !loading && offers.length === 0 && !error && (
+                <div
+                  style={{
+                    marginTop: 12,
+                    fontSize: 13,
+                    color: "#6b7280",
+                  }}
+                >
+                  No profitable flips passed the AI filters for this search.
+                  Try a different query or site.
+                </div>
+              )}
             </div>
+          </section>
+        </div>
+      </main>
+
+      {/* FOOTER */}
+      <footer
+        style={{
+          padding: "40px 20px",
+          backgroundColor: "#e5e7eb",
+          color: "#111827",
+          width: "100%",
+          marginLeft: 0,
+          borderTop: "1px solid #d1d5db",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 1120,
+            margin: "0 auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 32,
+          }}
+        >
+          {/* Brand */}
+          <div>
+            <h3
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: "#111827",
+                marginBottom: 10,
+              }}
+            >
+              PriceScrub
+            </h3>
+            <p style={{ fontSize: 14, lineHeight: 1.5, color: "#374151" }}>
+              AI-powered product sourcing. Find real deals. Avoid fakes. Flip
+              smarter.
+            </p>
           </div>
-        </section>
-      </div>
-    </main>
+
+          {/* Product */}
+          <div>
+            <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
+              Product
+            </h4>
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+                lineHeight: 1.9,
+              }}
+            >
+              <li>
+                <a
+                  href="/"
+                  style={{ color: "#374151", textDecoration: "none" }}
+                >
+                  How It Works
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/"
+                  style={{ color: "#374151", textDecoration: "none" }}
+                >
+                  AI Analyzer
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/"
+                  style={{ color: "#374151", textDecoration: "none" }}
+                >
+                  Supported Sites
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
+              Company
+            </h4>
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+                lineHeight: 1.9,
+              }}
+            >
+              <li>
+                <a
+                  href="/login"
+                  style={{ color: "#374151", textDecoration: "none" }}
+                >
+                  Login
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/signup"
+                  style={{ color: "#374151", textDecoration: "none" }}
+                >
+                  Sign Up
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal */}
+          <div>
+            <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
+              Legal
+            </h4>
+            <ul
+              style={{
+                listStyle: "none",
+                padding: 0,
+                margin: 0,
+                lineHeight: 1.9,
+              }}
+            >
+              <li>
+                <a href="#" style={{ color: "#374151", textDecoration: "none" }}>
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a href="#" style={{ color: "#374151", textDecoration: "none" }}>
+                  Privacy Policy
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div
+          style={{
+            textAlign: "center",
+            marginTop: 32,
+            fontSize: 12,
+            color: "#6b7280",
+          }}
+        >
+          © 2025 PriceScrub. All rights reserved.
+        </div>
+      </footer>
+
+      {/* Responsive styles */}
+      <style jsx>{`
+        @media (max-width: 900px) {
+          .hero-section {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 24px;
+          }
+
+          .hero-section > div:last-child {
+            height: 260px;
+          }
+
+          .feature-strip {
+            padding: 28px 18px;
+            border-radius: 28px;
+          }
+
+          .analyzer-card {
+            padding: 22px;
+            border-radius: 24px;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .hero-section h1 {
+            font-size: 32px;
+          }
+
+          .analyzer-card {
+            padding: 18px;
+          }
+
+          .offer-card {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .offer-card-right {
+            text-align: left;
+            min-width: 0;
+            width: 100%;
+            margin-top: 6px;
+          }
+        }
+      `}</style>
+    </div>
   );
 }
 
@@ -726,7 +974,7 @@ function OfferCard({
   offer: EnrichedOffer;
   highlight?: boolean;
 }) {
-  const marketAvg = offer.productMarketStats?.average ?? null;
+  const estValue = offer.aiEstimatedValue ?? null;
   const profitVsAvg = offer.profitVsAvg ?? null;
   const roiVsAvg = offer.roiVsAvg ?? null;
   const demand = offer.demandLabel ?? null;
@@ -746,6 +994,7 @@ function OfferCard({
 
   return (
     <a
+      className="offer-card"
       href={offer.url || "#"}
       target="_blank"
       rel="noreferrer"
@@ -830,8 +1079,9 @@ function OfferCard({
         </div>
       </div>
 
-      {/* RIGHT: price + avg sell price + profit/ROI + sell-time */}
+      {/* RIGHT: price + AI est. value + profit/ROI + sell-time */}
       <div
+        className="offer-card-right"
         style={{
           textAlign: "right",
           minWidth: 190,
@@ -850,12 +1100,12 @@ function OfferCard({
           {offer.price != null ? `$${offer.price.toFixed(2)}` : "—"}
         </div>
 
-        {marketAvg != null && (
+        {estValue != null && (
           <div style={{ fontSize: 13, marginBottom: 2 }}>
             <span style={{ fontWeight: 600, color: "#111827" }}>
-              ${marketAvg.toFixed(2)}
+              ${estValue.toFixed(2)}
             </span>{" "}
-            avg sell price
+            est. value
           </div>
         )}
 

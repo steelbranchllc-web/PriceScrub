@@ -11,13 +11,13 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
 
-// Basic assumptions for flipper profit model
+// ---------- Basic assumptions ----------
 const PLATFORM_FEE_RATE = 0.13; // 13% fees
 const SHIPPING_ESTIMATE = 12; // fallback shipping assumption
 
-// Outlier thresholds vs market average (Google)
-const OUTLIER_MIN_RATIO = 0.2; // keep listings >= 20% of market avg
-const OUTLIER_MAX_RATIO = 3.0; // keep listings <= 3x market avg
+// Outlier thresholds vs *internal* stats (not Google)
+const OUTLIER_MIN_RATIO = 0.15;
+const OUTLIER_MAX_RATIO = 4.0;
 
 // ---------- Types ----------
 type PriceStats = {
@@ -40,10 +40,10 @@ export type AnalyzedOffer = {
   estimatedFees?: number | null;
   estimatedShipping?: number | null;
   estimatedProfit?: number | null;
-  profitMarginPct?: number | null; // ROI vs market price
+  profitMarginPct?: number | null; // ROI vs AI true value
 
+  // Internal stats
   discountPctVsMedian?: number | null;
-
   productMarketStats?: PriceStats | null;
   discountPctVsProductMedian?: number | null;
 
@@ -52,7 +52,8 @@ export type AnalyzedOffer = {
   estimatedSellTime?: string | null; // e.g. "3–7 days"
 
   // AI “true value” logic for ALL categories
-  aiTrueValue?: number | null; // realistic resale value
+  aiTrueValue?: number | null; // legacy name
+  aiEstimatedValue?: number | null; // <- what the UI will read
   aiConfidence?: number | null; // 0–1
   aiDemandScore?: number | null; // 1–5
   aiSellTimeDaysMin?: number | null;
@@ -104,7 +105,7 @@ function normalizeProductKey(title: string | null | undefined): string {
   return title.toLowerCase().trim();
 }
 
-// Compute internal stats & discounts (before Google enrichment)
+// Compute internal stats & discounts (just from the scraped listings)
 function addStatsAndDiscounts(listings: AnalyzedOffer[]): {
   listings: AnalyzedOffer[];
   stats: {
@@ -183,122 +184,6 @@ function addStatsAndDiscounts(listings: AnalyzedOffer[]): {
   };
 }
 
-// ---------- Google analytics helpers ----------
-function parsePriceFromAny(val: unknown): number | null {
-  if (typeof val === "number") {
-    return Number.isFinite(val) ? val : null;
-  }
-  if (typeof val === "string") {
-    const cleaned = val.replace(/[^0-9.]/g, "");
-    if (!cleaned) return null;
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : null;
-  }
-  return null;
-}
-
-function parseShippingFromAny(val: unknown): number | null {
-  if (typeof val === "number") {
-    return Number.isFinite(val) ? val : null;
-  }
-  if (typeof val === "string") {
-    const lower = val.toLowerCase();
-    if (lower.includes("free")) return 0;
-    return parsePriceFromAny(val);
-  }
-  return null;
-}
-
-// 🔍 Try to extract a size token from the title (e.g. "10.5")
-function extractSizeTokenFromTitle(title: string): string | null {
-  const lower = title.toLowerCase();
-
-  if (
-    !/(size|sz|\bmen'?s|\bwomen'?s|\bwmns\b|\byouth|\bkids\b)/.test(lower)
-  ) {
-    return null;
-  }
-
-  const match = lower.match(/\b(\d{1,2}(?:\.5)?)\b/);
-  if (!match) return null;
-
-  return match[1];
-}
-
-async function fetchGoogleStatsForTitle(
-  title: string
-): Promise<{ avgPrice: number | null; avgShipping: number | null }> {
-  if (!SERPAPI_API_KEY) {
-    console.error("Missing SERPAPI_API_KEY, skipping Google stats");
-    return { avgPrice: null, avgShipping: null };
-  }
-
-  const params: Record<string, string> = {
-    api_key: SERPAPI_API_KEY,
-    engine: "google_shopping",
-    q: title,
-    hl: "en",
-    gl: "us",
-    num: "20",
-  };
-
-  const url =
-    "https://serpapi.com/search?" + new URLSearchParams(params).toString();
-
-  const res = await fetch(url);
-  if (!res.ok) {
-    console.error("❌ SerpAPI error for title stats:", await res.text());
-    return { avgPrice: null, avgShipping: null };
-  }
-
-  const data = await res.json();
-  const results: any[] = data.shopping_results || [];
-
-  const prices: number[] = [];
-  const shippings: number[] = [];
-
-  const sizeToken = extractSizeTokenFromTitle(title);
-
-  for (const item of results) {
-    const itemTitle = (item.title || "").toString().toLowerCase();
-
-    // Size-aware filter when possible
-    if (sizeToken && !itemTitle.includes(sizeToken.toLowerCase())) {
-      continue;
-    }
-
-    const p = parsePriceFromAny(
-      item.price ?? item.extracted_price ?? item.price_with_tax
-    );
-    if (p != null && p > 0) prices.push(p);
-
-    const s = parseShippingFromAny(item.shipping);
-    if (s != null && s >= 0) shippings.push(s);
-  }
-
-  let avgPrice: number | null = null;
-  let avgShipping: number | null = null;
-
-  if (prices.length) {
-    const sorted = prices.slice().sort((a, b) => a - b);
-    const trim = Math.floor(sorted.length * 0.2);
-    const trimmed =
-      sorted.length > 2 * trim
-        ? sorted.slice(trim, sorted.length - trim)
-        : sorted;
-
-    const sum = trimmed.reduce((a, b) => a + b, 0);
-    avgPrice = sum / trimmed.length;
-  }
-
-  if (shippings.length) {
-    const sumS = shippings.reduce((a, b) => a + b, 0);
-    avgShipping = sumS / shippings.length;
-  }
-
-  return { avgPrice, avgShipping };
-}
-
 // ---------- SerpAPI (retail sites) ----------
 function mapSerpItemToOffer(item: any, siteLabel: string): AnalyzedOffer {
   const priceStr: string | undefined =
@@ -315,7 +200,6 @@ function mapSerpItemToOffer(item: any, siteLabel: string): AnalyzedOffer {
   }
 
   const currency: string | null = item.currency || item.currency_symbol || null;
-
   const retailer: string =
     (item.source as string) || (item.seller as string) || siteLabel;
 
@@ -405,8 +289,7 @@ async function searchRetailSites(
   }
 
   const data = await res.json();
-  const results: any[] =
-    data.shopping_results || data.organic_results || [];
+  const results: any[] = data.shopping_results || data.organic_results || [];
 
   return results.map((item) => mapSerpItemToOffer(item, label));
 }
@@ -477,9 +360,7 @@ function mapFacebookItemToOffer(item: any): AnalyzedOffer {
   };
 }
 
-async function scrapeFacebookListings(
-  query: string
-): Promise<AnalyzedOffer[]> {
+async function scrapeFacebookListings(query: string): Promise<AnalyzedOffer[]> {
   if (!APIFY_API_TOKEN || !FB_TASK_ID) {
     console.error("Missing APIFY_API_TOKEN or FB_TASK_ID");
     return [];
@@ -748,12 +629,18 @@ type AiPricingResult = {
   ignore?: boolean | null;
 };
 
+type AiPricingEnvelope =
+  | { items?: AiPricingResult[] }
+  | { results?: AiPricingResult[] }
+  | AiPricingResult[];
+
 async function getAiPricingAndDemand(
   listings: AnalyzedOffer[]
 ): Promise<Record<string, AiPricingResult>> {
   try {
     if (!OPENAI_API_KEY || listings.length === 0) return {};
 
+    // Cap at 40 for token sanity
     const sample = listings.slice(0, 40);
 
     const compact = sample.map((l) => ({
@@ -761,86 +648,94 @@ async function getAiPricingAndDemand(
       title: l.title,
       price: l.price,
       source: l.source,
-      googleAvg: l.productMarketStats?.average ?? null,
-      googleDiscountPct: l.discountPctVsProductMedian ?? null,
+      location: l.location ?? null,
     }));
 
     const prompt = `
-You are an expert reseller and pricing analyst across ALL categories:
-- watches (luxury and mid-range)
-- sneakers and shoes
+You are a professional reseller and pawn-shop buyer who works across ALL categories:
+- luxury & mid-range watches
+- sneakers and athletic shoes
 - streetwear and designer clothing
 - golf clubs and sports equipment
-- electronics, collectibles, and other resale inventory.
+- electronics, collectibles, and general resale inventory.
 
-You get a JSON array of items with:
+You receive an array of listings with:
 - id
 - title
 - price (current listing price)
-- googleAvg (rough Google Shopping average)
-- googleDiscountPct (discount vs Google avg)
-- source (eBay, Facebook Marketplace, StockX, GOAT, etc.)
+- source (e.g. "Facebook Marketplace", "eBay", etc.)
+- location (optional)
 
-For EACH item, do this:
+For EACH listing:
+1. Think like a *disciplined* reseller who actually flips items for profit.
+2. Estimate a realistic **trueMarketPrice** for the exact product in the listing:
+   - what you would expect it to SELL FOR in the current market (not ask price).
+   - ignore obvious troll prices and hype.
+3. Assume normal condition unless the title clearly says otherwise (e.g. beaters, damaged).
+4. If price is obviously insane (e.g. $145 for Nike x Louis Vuitton collab), you may still give a rough trueMarketPrice but set ignore=true if it's clearly not a buy.
 
-1. Estimate a realistic **trueMarketPrice**:
-   - This is what a serious buyer will actually pay in the current market, not some troll listing.
-   - Treat Google averages as a hint, but ignore clearly insane or one-off prices.
+Respond **only** with valid JSON in this shape:
+{
+  "items": [
+    {
+      "id": "same id as input",
+      "trueMarketPrice": 140.0,
+      "confidence": 0.8,
+      "demandLabel": "Medium",
+      "demandScore": 3,
+      "sellTimeLabel": "3-7 days",
+      "sellTimeDaysMin": 3,
+      "sellTimeDaysMax": 7,
+      "ignore": false
+    },
+    ...
+  ]
+}
 
-2. Work across categories and consider size/brand as context.
-
-3. Return:
-   - trueMarketPrice
-   - confidence (0–1)
-   - demandLabel ("Low" | "Medium" | "High")
-   - demandScore (1–5)
-   - sellTimeLabel ("1-3 days", "3-7 days", "1-2 weeks", "2-4 weeks", "1-3 months")
-   - sellTimeDaysMin / sellTimeDaysMax
-   - ignore (true if the listing should not be used at all).
-
-Return ONLY JSON array (no markdown).
-
-Items:
-${JSON.stringify(compact)}
+Do not include any extra top-level keys or text.
+Input listings JSON:
+${JSON.stringify(compact, null, 2)}
 `;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content:
-            "You are a precise resale pricing engine for all categories, focused on realistic 'true value' and demand.",
+            "You are a strict, profit-focused reseller pricing engine. Always respond with valid JSON only.",
         },
-        { role: "user", content: prompt },
+        {
+          role: "user",
+          content: prompt,
+        },
       ],
-      max_tokens: 800,
+      max_tokens: 1200,
       temperature: 0.3,
     });
 
-    const content = completion.choices[0]?.message?.content ?? "[]";
+    const content = completion.choices[0]?.message?.content ?? '{"items": []}';
 
-    let parsed: AiPricingResult[] = [];
-
+    let envelope: AiPricingEnvelope;
     try {
-      let clean = content?.trim() || "";
-
-      clean = clean.replace(/```json/gi, "").replace(/```/g, "").trim();
-      const firstBracket = clean.indexOf("[");
-      const lastBracket = clean.lastIndexOf("]");
-
-      if (firstBracket !== -1 && lastBracket !== -1) {
-        clean = clean.substring(firstBracket, lastBracket + 1);
-      }
-
-      parsed = JSON.parse(clean) as AiPricingResult[];
-
-      if (!Array.isArray(parsed)) {
-        console.warn("AI pricing JSON was not an array. Returning empty map.");
-        parsed = [];
-      }
+      envelope = JSON.parse(content) as AiPricingEnvelope;
     } catch (err) {
       console.error("❌ Failed to parse AI pricing JSON:", err, content);
+      envelope = { items: [] };
+    }
+
+    let parsed: AiPricingResult[] = [];
+    if (Array.isArray(envelope)) {
+      parsed = envelope;
+    } else if (Array.isArray((envelope as any).items)) {
+      parsed = (envelope as any).items;
+    } else if (Array.isArray((envelope as any).results)) {
+      parsed = (envelope as any).results;
+    }
+
+    if (!Array.isArray(parsed)) {
+      console.warn("AI pricing JSON was not an array. Returning empty map.");
       parsed = [];
     }
 
@@ -888,6 +783,11 @@ type AiAuthenticityResult = {
   blockFromResults?: boolean | null;
 };
 
+type AiAuthenticityEnvelope =
+  | { items?: AiAuthenticityResult[] }
+  | { results?: AiAuthenticityResult[] }
+  | AiAuthenticityResult[];
+
 async function getAiAuthenticityJudgments(
   listings: AnalyzedOffer[]
 ): Promise<Record<string, AiAuthenticityResult>> {
@@ -902,77 +802,91 @@ async function getAiAuthenticityJudgments(
       price: l.price,
       source: l.source,
       url: l.url,
-      googleAvg: l.productMarketStats?.average ?? null,
-      discountPct:
-        l.discountPctVsProductMedian ?? l.discountPctVsMedian ?? null,
     }));
 
     const prompt = `
-You are the Authenticity & Fraud Detection Engine for a flipping marketplace.
+You are an Authenticity & Fraud Detection Engine for a flipping marketplace.
 
-You get a JSON array of items with:
+You get an array of items with:
 - id
 - title
 - price
 - source
 - url
-- googleAvg
-- discountPct
 
-Detect obvious fakes/scams, especially luxury and hype items.
-Be aggressive. If it looks wrong, treat risk as HIGH.
+Your job is to aggressively flag:
+- obvious fake luxury items (e.g. Nike x Louis Vuitton at $145)
+- scammy pricing
+- anything that feels off for a normal marketplace.
 
-Return ONLY JSON array with:
+For EACH item, return:
 - id
 - isLikelyAuthentic (true/false)
 - riskLevel ("low" | "medium" | "high")
-- warnings (string[])
-- explanation (string)
-- blockFromResults (true/false)
+- warnings (array of short strings)
+- explanation (short human-readable reason)
+- blockFromResults (true if we should NOT show this listing at all)
 
-Items:
-${JSON.stringify(compact)}
+Respond **only** with JSON in this shape:
+{
+  "items": [
+    {
+      "id": "fb-123",
+      "isLikelyAuthentic": true,
+      "riskLevel": "low",
+      "warnings": [],
+      "explanation": "Normal pricing and branding.",
+      "blockFromResults": false
+    },
+    ...
+  ]
+}
+
+Input listings JSON:
+${JSON.stringify(compact, null, 2)}
 `;
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
           content:
-            "You are a strict authenticity filter. Prioritize protecting users from fakes and scams.",
+            "You are a strict authenticity filter. Protect users from fakes and scams. Always respond with valid JSON only.",
         },
-        { role: "user", content: prompt },
+        {
+          role: "user",
+          content: prompt,
+        },
       ],
-      max_tokens: 800,
+      max_tokens: 1200,
       temperature: 0.1,
     });
 
-    const content = completion.choices[0]?.message?.content ?? "[]";
+    const content = completion.choices[0]?.message?.content ?? '{"items": []}';
 
-    let parsed: AiAuthenticityResult[] = [];
-
+    let envelope: AiAuthenticityEnvelope;
     try {
-      let clean = content?.trim() || "";
-      clean = clean.replace(/```json/gi, "").replace(/```/g, "").trim();
-
-      const firstBracket = clean.indexOf("[");
-      const lastBracket = clean.lastIndexOf("]");
-
-      if (firstBracket !== -1 && lastBracket !== -1) {
-        clean = clean.substring(firstBracket, lastBracket + 1);
-      }
-
-      parsed = JSON.parse(clean) as AiAuthenticityResult[];
-
-      if (!Array.isArray(parsed)) {
-        console.warn(
-          "AI authenticity JSON was not an array. Returning empty map."
-        );
-        parsed = [];
-      }
+      envelope = JSON.parse(content) as AiAuthenticityEnvelope;
     } catch (err) {
       console.error("❌ Failed to parse AI authenticity JSON:", err, content);
+      envelope = { items: [] };
+    }
+
+    let parsed: AiAuthenticityResult[] = [];
+    if (Array.isArray(envelope)) {
+      parsed = envelope;
+    } else if (Array.isArray((envelope as any).items)) {
+      parsed = (envelope as any).items;
+    } else if (Array.isArray((envelope as any).results)) {
+      parsed = (envelope as any).results;
+    }
+
+    if (!Array.isArray(parsed)) {
+      console.warn(
+        "AI authenticity JSON was not an array. Returning empty map."
+      );
       parsed = [];
     }
 
@@ -1060,93 +974,55 @@ export async function POST(req: Request) {
     }
     listings = Array.from(dedupedMap.values());
 
-    // Internal stats first
+    console.log("📦 Listings count (pre-AI):", listings.length);
+
+    // Internal stats first (NO Google averages any more)
     const {
-      listings: enrichedListings,
+      listings: withInternalStats,
       stats,
     } = addStatsAndDiscounts(listings);
 
     console.log(
-      "🔍 Returning listings count (pre-Google analytics):",
-      enrichedListings.length
+      "🔍 After internal stats, listings count:",
+      withInternalStats.length
     );
 
-    // Google analytics
-    const listingsWithGoogle = await Promise.all(
-      enrichedListings.map(async (l) => {
-        if (!l.title || l.price == null) return l;
-
-        const { avgPrice, avgShipping } = await fetchGoogleStatsForTitle(
-          l.title
-        );
-
-        if (avgPrice == null) {
-          return {
-            ...l,
-            estimatedShipping:
-              avgShipping != null
-                ? avgShipping
-                : l.estimatedShipping ?? SHIPPING_ESTIMATE,
-          };
-        }
-
-        const shippingCost =
-          avgShipping != null
-            ? avgShipping
-            : l.estimatedShipping ?? SHIPPING_ESTIMATE;
-
-        const fees = l.price * PLATFORM_FEE_RATE;
-        const profit = avgPrice - l.price - fees - shippingCost;
-        const roi = l.price > 0 ? (profit / l.price) * 100 : null;
-
-        const discountVsAvg = ((avgPrice - l.price) / avgPrice) * 100;
-
-        const googleStatsForThis: PriceStats = {
-          median: null,
-          average: avgPrice,
-          min: null,
-          max: null,
-        };
-
-        return {
-          ...l,
-          estimatedFees: fees,
-          estimatedShipping: shippingCost,
-          estimatedProfit: profit,
-          profitMarginPct: roi,
-          productMarketStats: googleStatsForThis,
-          discountPctVsProductMedian: discountVsAvg,
-          discountPctVsMedian: discountVsAvg,
-        };
-      })
-    );
-
-    console.log(
-      "🔍 Returning listings count (post-Google analytics):",
-      listingsWithGoogle.length
-    );
-
-    // 🧹 Basic pre-AI filter
-    const prelimFilteredListings = listingsWithGoogle.filter((l) => {
+    // 🧹 Basic pre-AI sanity filter
+    const prelimFilteredListings = withInternalStats.filter((l) => {
       const price = l.price;
-      const avg = l.productMarketStats?.average ?? null;
 
       if (price == null || price <= 0) return false;
-      if (l.profitMarginPct == null) return false;
-      if (l.profitMarginPct <= 0) return false;
 
+      const avg = l.productMarketStats?.average ?? null;
       if (avg == null || avg <= 0) return true;
 
       const ratio = price / avg;
+      // Keep only roughly within [0.15x, 4x] of internal average
       return ratio >= OUTLIER_MIN_RATIO && ratio <= OUTLIER_MAX_RATIO;
     });
 
     console.log(
-      "🧹 After ROI + outlier filter (pre-AI), listings count:",
+      "🧹 After basic price filter (pre-AI), listings count:",
       prelimFilteredListings.length
     );
 
-    // 🤖 AI authenticity + pricing
+    if (prelimFilteredListings.length === 0) {
+      const filteredStatsEmpty: SearchResponse["priceStats"] = {
+        ...stats,
+        overall: computePriceStats([]),
+      };
+
+      return NextResponse.json(
+        {
+          listings: [],
+          issues: issues.length ? issues : undefined,
+          priceStats: filteredStatsEmpty,
+        } as SearchResponse,
+        { status: 200 }
+      );
+    }
+
+    // 🤖 AI authenticity + pricing (per listing, like a pro buyer)
     const authenticityMap = await getAiAuthenticityJudgments(
       prelimFilteredListings
     );
@@ -1161,34 +1037,42 @@ export async function POST(req: Request) {
       const baseFees =
         l.estimatedFees != null ? l.estimatedFees : price * PLATFORM_FEE_RATE;
       const baseShipping =
-        l.estimatedShipping != null ? l.estimatedShipping : SHIPPING_ESTIMATE;
+        l.estimatedShipping != null
+          ? l.estimatedShipping
+          : SHIPPING_ESTIMATE;
 
-      let aiProfit: number | null = l.estimatedProfit ?? null;
-      let aiRoi: number | null = l.profitMarginPct ?? null;
+      let aiProfit: number | null = null;
+      let aiRoi: number | null = null;
+      let effectiveTrueValue: number | null = null;
 
       if (ai?.trueMarketPrice != null && price > 0) {
+        effectiveTrueValue = ai.trueMarketPrice;
         const profit = ai.trueMarketPrice - price - baseFees - baseShipping;
         const roi = (profit / price) * 100;
         aiProfit = profit;
         aiRoi = roi;
       }
 
-      const effectiveAvg =
-        ai?.trueMarketPrice ??
-        l.productMarketStats?.average ??
-        null;
+      // Fallback: if AI didn't respond for this item, keep existing averages
+      if (effectiveTrueValue == null) {
+        effectiveTrueValue = l.productMarketStats?.average ?? null;
+      }
 
       const discountPct =
-        effectiveAvg && price > 0
-          ? ((effectiveAvg - price) / effectiveAvg) * 100
+        effectiveTrueValue && price > 0
+          ? ((effectiveTrueValue - price) / effectiveTrueValue) * 100
           : l.discountPctVsProductMedian ?? l.discountPctVsMedian ?? null;
+
+      const trueValue = effectiveTrueValue;
 
       return {
         ...l,
         estimatedFees: baseFees,
         estimatedShipping: baseShipping,
-        estimatedProfit: aiProfit,
-        profitMarginPct: aiRoi,
+        estimatedProfit:
+          aiProfit != null ? aiProfit : l.estimatedProfit ?? null,
+        profitMarginPct:
+          aiRoi != null ? aiRoi : l.profitMarginPct ?? null,
         productMarketStats: {
           ...(l.productMarketStats || {
             median: null,
@@ -1196,11 +1080,12 @@ export async function POST(req: Request) {
             max: null,
             average: null,
           }),
-          average: effectiveAvg,
+          average: trueValue,
         },
         discountPctVsProductMedian: discountPct,
         discountPctVsMedian: discountPct,
-        aiTrueValue: ai?.trueMarketPrice ?? null,
+        aiTrueValue: trueValue,
+        aiEstimatedValue: trueValue, // <- what UI uses
         aiConfidence: ai?.confidence ?? null,
         aiDemandScore: ai?.demandScore ?? null,
         aiSellTimeDaysMin: ai?.sellTimeDaysMin ?? null,
@@ -1219,7 +1104,7 @@ export async function POST(req: Request) {
     // 🧹 FINAL FILTER:
     // - drop AI-ignore
     // - drop authenticity blocks/high risk
-    // - drop 0% or negative ROI
+    // - drop <=0 ROI based on AI true value
     const filteredListings = listingsWithAi.filter((l) => {
       if (l.aiShouldIgnore) return false;
       if (l.aiBlockFromResults) return false;
@@ -1229,15 +1114,23 @@ export async function POST(req: Request) {
     });
 
     console.log(
-      "🧹 After AI ignore + authenticity + ROI>0 filter, listings count:",
+      "🧹 After AI ignore + authenticity + ROI>0 (AI true value) filter, listings count:",
       filteredListings.length
     );
 
-    const filteredOverall = computePriceStats(
-      filteredListings
-        .filter((l) => l.price != null)
-        .map((l) => l.price as number)
-    );
+    // Use AI-estimated values for the overall stats
+    const overallEstimates: number[] = filteredListings
+      .map((l) => {
+        const v =
+          l.aiEstimatedValue ??
+          l.aiTrueValue ??
+          l.productMarketStats?.average ??
+          l.price;
+        return typeof v === "number" && !Number.isNaN(v) ? v : null;
+      })
+      .filter((v): v is number => v !== null);
+
+    const filteredOverall = computePriceStats(overallEstimates);
 
     const filteredStats: SearchResponse["priceStats"] = {
       ...stats,
