@@ -214,7 +214,7 @@ export default function HomePage() {
     >
       <main
         style={{
-          padding: "32px 16px 72px",
+          padding: "32px 4px 72px",
           flex: 1,
         }}
       >
