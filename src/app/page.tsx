@@ -94,7 +94,6 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Centralized search function so we can call it from form
   const performSearch = async (searchQuery: string, searchSite: string) => {
     const cleanedQuery = searchQuery.trim();
     if (!cleanedQuery) {
@@ -121,7 +120,6 @@ export default function HomePage() {
 
       // Enrich with profit / ROI vs AI est. value
       let enriched: EnrichedOffer[] = (data.listings || []).map((offer) => {
-        // ONLY use per-listing AI value or that listing's own product average.
         const estValue =
           typeof offer.aiEstimatedValue === "number"
             ? offer.aiEstimatedValue
@@ -160,7 +158,7 @@ export default function HomePage() {
         return true;
       });
 
-      // Sort listings by ROI desc; if ROI missing, fall back to price asc
+      // Sort by ROI desc; if ROI missing, fall back to price asc
       const sortedByROI = [...enriched].sort((a, b) => {
         const hasRoiA =
           typeof a.roiVsAvg === "number" && !Number.isNaN(a.roiVsAvg);
@@ -173,7 +171,6 @@ export default function HomePage() {
         if (hasRoiA && !hasRoiB) return -1;
         if (!hasRoiA && hasRoiB) return 1;
 
-        // neither has ROI -> sort by price asc, keeping nulls at end
         if (a.price == null && b.price == null) return 0;
         if (a.price == null) return 1;
         if (b.price == null) return -1;
@@ -287,17 +284,9 @@ export default function HomePage() {
               >
                 Launch PriceScrub
               </button>
-
-              <div
-                style={{
-                  marginTop: 10,
-                  fontSize: 13,
-                  color: "#4b5563",
-                }}
-              ></div>
             </div>
 
-            {/* Hero image card – image fills the whole box */}
+            {/* Hero image card */}
             <div
               style={{
                 borderRadius: 36,
@@ -335,7 +324,6 @@ export default function HomePage() {
               boxShadow: "0 18px 45px rgba(15,23,42,0.14)",
             }}
           >
-            {/* Header above cards */}
             <div
               style={{
                 textAlign: "center",
@@ -402,7 +390,6 @@ export default function HomePage() {
               marginBottom: 96,
             }}
           >
-            {/* Section header above the box */}
             <div
               style={{
                 textAlign: "center",
@@ -533,7 +520,6 @@ export default function HomePage() {
                       outline: "none",
                     }}
                   />
-                  {/* tiny magnifying glass dot+stem */}
                   <span
                     style={{
                       position: "absolute",
@@ -605,8 +591,6 @@ export default function HomePage() {
                             site === opt.value
                               ? "0 6px 16px rgba(22,163,74,0.35)"
                               : "none",
-                          transition:
-                            "background-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease",
                         }}
                       >
                         {opt.label}
@@ -654,7 +638,7 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* SUMMARY CARDS (overall stats) */}
+              {/* SUMMARY CARDS */}
               {summary && stats && (
                 <div
                   style={{
@@ -752,7 +736,7 @@ export default function HomePage() {
               marginBottom: 96,
             }}
           >
-            {/* Left: two separate cards, diagonally overlapped */}
+            {/* Left: overlapping cards */}
             <div
               style={{
                 position: "relative",
@@ -761,7 +745,6 @@ export default function HomePage() {
                 marginTop: 40,
               }}
             >
-              {/* BEFORE card */}
               <div
                 style={{
                   position: "absolute",
@@ -795,7 +778,6 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* AFTER card */}
               <div
                 style={{
                   position: "absolute",
@@ -873,7 +855,6 @@ export default function HomePage() {
                   flex: 1,
                 }}
               >
-                {/* Bullet 1 */}
                 <div style={{ display: "flex", gap: 10 }}>
                   <span
                     style={{
@@ -906,7 +887,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Bullet 2 */}
                 <div style={{ display: "flex", gap: 10 }}>
                   <span
                     style={{
@@ -939,7 +919,6 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                {/* Bullet 3 */}
                 <div style={{ display: "flex", gap: 10 }}>
                   <span
                     style={{
@@ -979,6 +958,7 @@ export default function HomePage() {
 
       {/* Responsive styles */}
       <style jsx>{`
+        /* Tablet / small desktop */
         @media (max-width: 900px) {
           .hero-section {
             grid-template-columns: minmax(0, 1fr);
@@ -992,6 +972,8 @@ export default function HomePage() {
           .feature-strip {
             padding: 24px 18px 30px;
             border-radius: 28px;
+            margin-top: 40px;
+            margin-bottom: 60px;
           }
 
           .analyzer-card {
@@ -1001,13 +983,17 @@ export default function HomePage() {
 
           .money-section {
             grid-template-columns: minmax(0, 1fr);
-            gap: 24px;
+            gap: 32px;
+            margin-top: 72px;
+            margin-bottom: 72px;
           }
         }
 
+        /* Phone */
         @media (max-width: 640px) {
           .hero-section h1 {
             font-size: 36px;
+            line-height: 1.1;
           }
 
           .analyzer-card {
@@ -1024,6 +1010,18 @@ export default function HomePage() {
             min-width: 0;
             width: 100%;
             margin-top: 6px;
+          }
+        }
+
+        /* Extra small phones */
+        @media (max-width: 480px) {
+          .feature-strip {
+            padding: 20px 14px 26px;
+          }
+
+          .money-section {
+            margin-top: 56px;
+            margin-bottom: 56px;
           }
         }
       `}</style>
@@ -1054,7 +1052,7 @@ function FeatureCard({
         textAlign: "center",
       }}
     >
-      {/* Step badge to the left, word perfectly centered */}
+      {/* Step badge to the left, word centered */}
       <div
         style={{
           display: "flex",
@@ -1226,11 +1224,9 @@ function OfferCard({
         boxShadow: highlight
           ? "0 14px 32px rgba(74, 222, 128, 0.45)"
           : "0 8px 20px rgba(148, 163, 184, 0.3)",
-        transition:
-          "transform 0.08s ease-out, box-shadow 0.08s ease-out, border-color 0.08s ease-out",
       }}
     >
-      {/* LEFT: image + title + chips */}
+      {/* LEFT */}
       <div
         style={{
           display: "flex",
@@ -1292,7 +1288,7 @@ function OfferCard({
         </div>
       </div>
 
-      {/* RIGHT: price + AI est. value + profit/ROI + sell-time */}
+      {/* RIGHT */}
       <div
         className="offer-card-right"
         style={{
