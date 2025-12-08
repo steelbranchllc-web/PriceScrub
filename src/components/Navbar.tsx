@@ -162,16 +162,47 @@ export default function Navbar() {
         {/* MOBILE HAMBURGER */}
         <button
           type="button"
-          className={`navbar-toggle ${
-            isMobileMenuOpen ? "navbar-toggle--open" : ""
-          }`}
-          aria-label="Toggle navigation menu"
-          aria-expanded={isMobileMenuOpen}
+          className="navbar-toggle"
+          aria-label="Open navigation menu"
           onClick={() => setIsMobileMenuOpen((open) => !open)}
+          style={{
+            marginLeft: "auto",
+            background: "transparent",
+            border: "none",
+            padding: 8,
+            cursor: "pointer",
+          }}
         >
-          <span className="hamburger-line" />
-          <span className="hamburger-line" />
-          <span className="hamburger-line" />
+          {/* three bars */}
+          <span
+            style={{
+              display: "block",
+              width: 24,
+              height: 2,
+              borderRadius: 999,
+              backgroundColor: "#0f172a",
+              marginBottom: 5,
+            }}
+          />
+          <span
+            style={{
+              display: "block",
+              width: 24,
+              height: 2,
+              borderRadius: 999,
+              backgroundColor: "#0f172a",
+              marginBottom: 5,
+            }}
+          />
+          <span
+            style={{
+              display: "block",
+              width: 24,
+              height: 2,
+              borderRadius: 999,
+              backgroundColor: "#0f172a",
+            }}
+          />
         </button>
       </div>
 
@@ -281,29 +312,13 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Auth buttons pinned toward bottom */}
+          {/* Auth combined at bottom */}
           <div
             style={{
               marginTop: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
             }}
           >
-            <Link
-              href="/login"
-              onClick={closeMenu}
-              style={{
-                fontSize: 16,
-                textDecoration: "none",
-                color: "#0f172a",
-                fontWeight: 500,
-              }}
-            >
-              Log in
-            </Link>
-
-            <Link href="/signup" onClick={closeMenu}>
+            <Link href="/login" onClick={closeMenu}>
               <button
                 type="button"
                 style={{
@@ -319,7 +334,7 @@ export default function Navbar() {
                   boxShadow: "0 10px 28px rgba(15,23,42,0.12)",
                 }}
               >
-                Sign Up
+                Log in / Sign up
               </button>
             </Link>
           </div>
@@ -330,33 +345,15 @@ export default function Navbar() {
         /* Desktop defaults */
         .navbar-toggle {
           display: none;
-          margin-left: auto;
-          background: transparent;
-          border: none;
-          padding: 8px;
-          cursor: pointer;
         }
 
-        .hamburger-line {
-          display: block;
-          width: 22px;
-          height: 2px;
-          border-radius: 999px;
-          background-color: #0f172a;
-          margin: 3px 0;
-        }
-
-        /* Mobile behavior */
         @media (max-width: 900px) {
           .navbar-right-desktop {
-            display: none !important;
+            display: none;
           }
 
           .navbar-toggle {
             display: inline-flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
           }
         }
       `}</style>

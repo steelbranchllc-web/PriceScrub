@@ -1,4 +1,3 @@
-// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -140,7 +139,6 @@ export default function HomePage() {
         };
       });
 
-      // filter out non-profitable / bad math
       enriched = enriched.filter((offer) => {
         const roi = offer.roiVsAvg;
         if (roi == null || Number.isNaN(roi as number) || roi <= 0) {
@@ -155,7 +153,6 @@ export default function HomePage() {
         return true;
       });
 
-      // sort by ROI desc
       const sortedByROI = [...enriched].sort((a, b) => {
         const hasRoiA =
           typeof a.roiVsAvg === "number" && !Number.isNaN(a.roiVsAvg);
@@ -287,6 +284,7 @@ export default function HomePage() {
 
             {/* Hero image card */}
             <div
+              className="hero-image-card"
               style={{
                 borderRadius: 36,
                 overflow: "hidden",
@@ -957,22 +955,24 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* 🔥 Responsive styles for this page */}
+      {/* Responsive styles */}
       <style jsx>{`
         /* Tablet / small desktop */
-        @media only screen and (max-width: 900px), only screen and (max-device-width: 900px) {
+        @media (max-width: 900px) {
           .page-main {
-            padding: 28px 12px 72px !important;
+            padding: 28px 14px 72px !important;
           }
 
           .hero-section {
             grid-template-columns: minmax(0, 1fr) !important;
-            gap: 24px !important;
-            margin-bottom: 52px !important;
+            gap: 28px !important;
+            margin-bottom: 56px !important;
           }
 
-          .hero-section > div:last-child {
-            height: 260px !important;
+          .hero-image-card {
+            max-width: 480px;
+            margin: 0 auto;
+            height: 320px !important;
           }
 
           .feature-strip {
@@ -996,10 +996,18 @@ export default function HomePage() {
         }
 
         /* Phone */
-        @media only screen and (max-width: 640px), only screen and (max-device-width: 640px) {
+        @media (max-width: 640px) {
+          .page-main {
+            padding: 24px 14px 64px !important;
+          }
+
           .hero-title {
             font-size: 32px !important;
             line-height: 1.15 !important;
+          }
+
+          .hero-section {
+            margin-bottom: 44px !important;
           }
 
           .feature-strip h2 {
@@ -1012,6 +1020,12 @@ export default function HomePage() {
 
           .money-title {
             font-size: 24px !important;
+          }
+
+          .hero-image-card,
+          .feature-strip,
+          .analyzer-card {
+            box-shadow: 0 10px 26px rgba(148, 163, 184, 0.3) !important;
           }
 
           .analyzer-card {
@@ -1037,9 +1051,9 @@ export default function HomePage() {
         }
 
         /* Extra small phones */
-        @media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
+        @media (max-width: 480px) {
           .page-main {
-            padding: 20px 10px 60px !important;
+            padding: 20px 10px 56px !important;
           }
 
           .feature-strip {
