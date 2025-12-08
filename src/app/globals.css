@@ -14,8 +14,6 @@ body {
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "Helvetica Neue", Arial, sans-serif;
-  background-color: #020617; /* dark slate */
-  color: #e5e7eb; /* light slate */
 }
 
 /* Layout */
@@ -364,4 +362,71 @@ body {
   background-color: rgba(127, 29, 29, 0.3);
   font-size: 14px;
   color: #fecaca;
+}
+/* ============ NAVBAR ============ */
+
+.navbar {
+  width: 100%;
+  background: linear-gradient(to bottom right, #f8faff, #eef2ff);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 20px 0;
+}
+
+.navbar-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-logo {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.navbar-logo-ai {
+  font-size: 16px;
+  font-weight: 600;
+  margin-left: 4px;
+  color: #64748b;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 28px;
+}
+
+.nav-link {
+  font-size: 16px;
+  color: #4c1d95;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.navbar-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.nav-login {
+  font-size: 16px;
+  color: #475569;
+  text-decoration: none;
+}
+
+.nav-signup {
+  background: white;
+  padding: 10px 22px;
+  border-radius: 50px;
+  border: 1px solid #cbd5e1;
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+  text-decoration: none;
 }

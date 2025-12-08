@@ -208,13 +208,15 @@ export default function HomePage() {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#f9fafb",
-        fontFamily: "Georgia, 'Times New Roman', serif",
+        background:
+          "radial-gradient(circle at top, #eef2ff 0, #f9fafb 42%, #f3f4f6 100%)",
+        fontFamily:
+          "system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif",
       }}
     >
       <main
         style={{
-          padding: "32px 4px 72px",
+          padding: "36px 8px 88px",
           flex: 1,
         }}
       >
@@ -225,109 +227,43 @@ export default function HomePage() {
             margin: "0 auto",
           }}
         >
-          {/* TOP NAV / LOGO */}
-          <header
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: 40,
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <img
-                src="/Logo.png"
-                alt="PriceScrub logo"
-                style={{ height: 70, objectFit: "contain" }}
-              />
-            </div>
-
-            {/* Auth buttons (Log In / Sign Up) */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <Link href="/login">
-                <button
-                  type="button"
-                  style={{
-                    padding: "12px 27px",
-                    borderRadius: 999,
-                    border: "1px solid #cbd5e1",
-                    background: "#ffffff",
-                    color: "#4b5563",
-                    fontFamily: "Georgia, 'Times New Roman', serif",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
-                  }}
-                >
-                  Log In
-                </button>
-              </Link>
-              <Link href="/signup">
-                <button
-                  type="button"
-                  style={{
-                    padding: "12px 27px",
-                    borderRadius: 999,
-                    border: "1px solid #cbd5e1",
-                    background: "#f3f4f6",
-                    color: "#111827",
-                    fontFamily: "Georgia, 'Times New Roman', serif",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    boxShadow: "0 1px 3px rgba(15,23,42,0.08)",
-                  }}
-                >
-                  Sign Up
-                </button>
-              </Link>
-            </div>
-          </header>
-
           {/* HERO SECTION */}
           <section
             className="hero-section"
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(0,1.1fr) minmax(0,1.1fr)",
+              gridTemplateColumns: "minmax(0,1.05fr) minmax(0,1.1fr)",
               gap: 40,
               alignItems: "center",
-              marginBottom: 64,
+              marginBottom: 80,
             }}
           >
             {/* Hero text */}
             <div>
               <h1
                 style={{
-                  fontSize: 44,
-                  lineHeight: 1.1,
-                  marginBottom: 16,
-                  color: "#111827",
+                  fontSize: 56,
+                  lineHeight: 1.02,
+                  marginBottom: 18,
+                  color: "#0f172a",
+                  fontWeight: 800,
                 }}
               >
-                Turn Every Search
+                Turn every search
                 <br />
-                Into Profit.
+                into profit.
               </h1>
               <p
                 style={{
-                  fontSize: 16,
+                  fontSize: 20,
                   color: "#4b5563",
-                  maxWidth: 480,
-                  marginBottom: 24,
+                  maxWidth: 520,
+                  marginBottom: 28,
+                  lineHeight: 1.5,
                 }}
               >
-                PriceScrub scans listings across top marketplaces, throws out fake
-                comps, and uses AI to show only high-confidence, underpriced
+                PriceScrub AI scans listings across top marketplaces, throws out
+                fake comps, and highlights only high-confidence, underpriced
                 opportunities.
               </p>
 
@@ -338,29 +274,36 @@ export default function HomePage() {
                   if (el) el.scrollIntoView({ behavior: "smooth" });
                 }}
                 style={{
-                  padding: "12px 24px",
+                  padding: "11px 24px",
                   borderRadius: 999,
                   border: "none",
-                  background:
-                    "linear-gradient(120deg,#16a34a,#22c55e,#65a30d 90%)",
+                  background: "#16a34a",
                   color: "white",
                   fontWeight: 700,
                   fontSize: 15,
                   cursor: "pointer",
-                  boxShadow: "0 16px 35px rgba(34,197,94,0.45)",
+                  boxShadow: "0 14px 34px rgba(22,163,74,0.4)",
                 }}
               >
                 Launch PriceScrub
               </button>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 13,
+                  color: "#4b5563",
+                }}
+              ></div>
             </div>
 
             {/* Hero image card – image fills the whole box */}
             <div
               style={{
-                borderRadius: 40,
+                borderRadius: 36,
                 overflow: "hidden",
-                boxShadow: "0 28px 70px rgba(15,23,42,0.28)",
-                border: "1px solid #e5e7eb",
+                boxShadow: "0 26px 60px rgba(15,23,42,0.25)",
+                border: "1px solid rgba(226,232,240,0.9)",
                 backgroundColor: "#ffffff",
                 height: 420,
               }}
@@ -378,55 +321,123 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* FEATURE STRIP */}
+          {/* FEATURE STRIP – 3-step flow */}
           <div
             className="feature-strip"
             style={{
-              backgroundColor: "#e5e7eb",
-              padding: "40px 32px",
+              background:
+                "linear-gradient(140deg, #e5e7eb, #e2e8f0 45%, #e5e7eb 100%)",
+              padding: "30px 32px 38px",
               borderRadius: 40,
               border: "1px solid #d1d5db",
-              marginBottom: 64,
-              boxShadow: "0 20px 45px rgba(15,23,42,0.12)",
+              marginTop: 72,
+              marginBottom: 88,
+              boxShadow: "0 18px 45px rgba(15,23,42,0.14)",
             }}
           >
+            {/* Header above cards */}
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: 24,
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 35,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: 6,
+                }}
+              >
+                Three Simple Steps from Search to Sold
+              </h2>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: "#4b5563",
+                  maxWidth: 580,
+                  margin: "0 auto",
+                  lineHeight: 1.6,
+                }}
+              >
+                A framework that helps you identify and evaluate opportunities
+                that make you money.
+              </p>
+            </div>
+
             <section
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-                gap: 32,
+                gap: 28,
               }}
             >
               <FeatureCard
+                stepLabel="Step 1"
                 title="Search"
-                description="Tell PriceScrub what you’re hunting for—from Jordan 1s to RTX cards—and where you want to source."
+                description="Tell PriceScrub what you’re hunting for, from Jordan 1s to RTX cards, and choose where you want to source."
                 imageSrc="/search.png"
               />
               <FeatureCard
+                stepLabel="Step 2"
                 title="Find"
                 description="We scrub through real sold prices, kick out wild outliers, and calculate realistic resale value and ROI."
                 imageSrc="/find.png"
               />
               <FeatureCard
+                stepLabel="Step 3"
                 title="Flip"
-                description="See demand, estimated sell time, and your margin—so you only buy what moves in days, not months."
+                description="See demand, estimated sell time, and your margin so you only buy what moves in days, not months."
                 imageSrc="/flip.png"
               />
             </section>
           </div>
 
           {/* ANALYZER PANEL */}
-          <section id="analyzer">
+          <section
+            id="analyzer"
+            style={{
+              marginTop: 72,
+              marginBottom: 96,
+            }}
+          >
+            {/* Section header above the box */}
+            <div
+              style={{
+                textAlign: "center",
+                marginBottom: 18,
+              }}
+            >
+              <h2
+                style={{
+                  fontSize: 35,
+                  fontWeight: 700,
+                  color: "#0f172a",
+                  marginBottom: 6,
+                }}
+              >
+                Market Analysis Engine
+              </h2>
+              <div
+                style={{
+                  fontSize: 14,
+                  color: "#4b5563",
+                }}
+              >
+                Drop in a search and let the AI do the heavy lifting on pricing,
+                demand, and ROI.
+              </div>
+            </div>
+
             <div
               className="analyzer-card"
               style={{
-                padding: 32,
+                padding: 34,
                 borderRadius: 32,
                 backgroundColor: "#ffffff",
-                border: "1px solid #e5e7eb",
+                border: "1px solid rgba(226,232,240,0.9)",
                 boxShadow: "0 26px 70px rgba(148,163,184,0.45)",
-                marginBottom: 80,
-                minHeight: 260,
               }}
             >
               {/* Analyzer header */}
@@ -436,20 +447,43 @@ export default function HomePage() {
                   justifyContent: "space-between",
                   flexWrap: "wrap",
                   gap: 10,
-                  marginBottom: 20,
+                  marginBottom: 22,
                   alignItems: "center",
                 }}
               >
                 <div>
                   <h2
                     style={{
-                      fontSize: 24,
+                      fontSize: 26,
                       margin: 0,
-                      color: "#111827",
+                      color: "#0f172a",
                     }}
                   >
-                    Search thousands of listings in just one click
+                    Instantly analyze thousands of listings
                   </h2>
+                  <p
+                    style={{
+                      margin: 4,
+                      marginTop: 6,
+                      fontSize: 13,
+                      color: "#6b7280",
+                    }}
+                  >
+                    Try your first five searches on us for free. Upgrade to a
+                    paid plan to unlock more searches.
+                  </p>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#9ca3af",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.14,
+                    fontWeight: 600,
+                  }}
+                >
+                  Powered by PriceScrub&nbsp;AI
                 </div>
               </div>
 
@@ -457,17 +491,17 @@ export default function HomePage() {
               <form
                 onSubmit={handleSubmit}
                 style={{
-                  padding: 20,
-                  borderRadius: 20,
+                  padding: 24,
+                  borderRadius: 22,
                   backgroundColor: "#f9fafb",
                   border: "1px solid #e5e7eb",
-                  marginBottom: 20,
+                  marginBottom: 24,
                 }}
               >
                 <label
                   style={{
                     fontSize: 11,
-                    color: "#6b7280",
+                    color: "#9ca3af",
                     textTransform: "uppercase",
                     letterSpacing: 0.08,
                     fontWeight: 600,
@@ -476,31 +510,63 @@ export default function HomePage() {
                   What are you hunting for?
                 </label>
 
-                <input
-                  type="text"
-                  placeholder="Jordan 1 Lost & Found, Scotty Cameron putter, RTX 4090..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                <div
                   style={{
-                    width: "100%",
+                    position: "relative",
                     marginTop: 8,
                     marginBottom: 16,
-                    borderRadius: 14,
-                    padding: "14px 16px",
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #d1d5db",
-                    color: "#111827",
-                    fontSize: 14,
-                    outline: "none",
                   }}
-                />
+                >
+                  <input
+                    type="text"
+                    placeholder="Jordan 1 Lost & Found, Scotty Cameron putter, RTX 4090..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    style={{
+                      width: "100%",
+                      borderRadius: 999,
+                      padding: "14px 18px 14px 42px",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #d1d5db",
+                      color: "#111827",
+                      fontSize: 14,
+                      outline: "none",
+                    }}
+                  />
+                  {/* tiny magnifying glass dot+stem */}
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 18,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 14,
+                      height: 14,
+                      borderRadius: "999px",
+                      border: "2px solid #9ca3af",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 28,
+                      top: "54%",
+                      width: 7,
+                      height: 2,
+                      borderRadius: 999,
+                      backgroundColor: "#9ca3af",
+                      transform: "rotate(40deg)",
+                    }}
+                  />
+                </div>
 
                 {/* SITES */}
                 <div style={{ marginBottom: 16 }}>
                   <label
                     style={{
                       fontSize: 11,
-                      color: "#6b7280",
+                      color: "#9ca3af",
                       textTransform: "uppercase",
                       letterSpacing: 0.08,
                       fontWeight: 600,
@@ -523,13 +589,13 @@ export default function HomePage() {
                         type="button"
                         onClick={() => setSite(opt.value)}
                         style={{
-                          padding: "7px 14px",
+                          padding: "6px 13px",
                           borderRadius: 999,
                           cursor: "pointer",
                           border:
                             site === opt.value
-                              ? "1px solid transparent"
-                              : "1px solid #d1d5db",
+                              ? "1px solid #16a34a"
+                              : "1px solid #d4d4d8",
                           backgroundColor:
                             site === opt.value ? "#16a34a" : "#ffffff",
                           color: site === opt.value ? "#f9fafb" : "#111827",
@@ -537,7 +603,7 @@ export default function HomePage() {
                           fontWeight: 500,
                           boxShadow:
                             site === opt.value
-                              ? "0 10px 24px rgba(22,163,74,0.45)"
+                              ? "0 6px 16px rgba(22,163,74,0.35)"
                               : "none",
                           transition:
                             "background-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease",
@@ -555,17 +621,16 @@ export default function HomePage() {
                   disabled={loading}
                   style={{
                     width: "100%",
-                    padding: "13px 20px",
-                    borderRadius: 999,
-                    background:
-                      "linear-gradient(120deg,#16a34a,#22c55e,#65a30d 90%)",
+                    padding: "12px 20px",
+                    borderRadius: 16,
+                    background: "#16a34a",
                     color: "#ffffff",
                     border: "none",
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: 700,
                     cursor: loading ? "default" : "pointer",
                     opacity: loading ? 0.9 : 1,
-                    boxShadow: "0 18px 45px rgba(22,163,74,0.55)",
+                    boxShadow: "0 18px 40px rgba(22,163,74,0.45)",
                   }}
                 >
                   {loading ? "Scrubbing the markets..." : "Search Listings"}
@@ -648,7 +713,7 @@ export default function HomePage() {
                       fontWeight: 700,
                     }}
                   >
-                    All Listings (sorted by ROI)
+                    All listings (sorted by ROI)
                   </h3>
 
                   <div style={{ display: "grid", gap: 8 }}>
@@ -673,157 +738,255 @@ export default function HomePage() {
               )}
             </div>
           </section>
+
+          {/* HOW PRICESCRUB MAKES YOU MONEY */}
+          <section
+            id="profit-engine"
+            className="money-section"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "minmax(0,1.05fr) minmax(0,1.1fr)",
+              gap: 40,
+              alignItems: "center",
+              marginTop: 96,
+              marginBottom: 96,
+            }}
+          >
+            {/* Left: two separate cards, diagonally overlapped, slightly smaller, no green glow */}
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                height: 340, // was 380
+                marginTop: 40,
+              }}
+            >
+              {/* BEFORE card (bottom-left) */}
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  width: "48%", // was 52%
+                  borderRadius: 28,
+                  backgroundColor: "#ffffff",
+                  boxShadow: "0 22px 50px rgba(15,23,42,0.35)",
+                  padding: 10,
+                  transform: "rotate(-4deg)",
+                  zIndex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    borderRadius: 22,
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src="/before.png"
+                    alt="Listing before the flip"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* AFTER card (top-right) */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  width: "48%", // was 52%
+                  borderRadius: 28,
+                  backgroundColor: "#ffffff",
+                  boxShadow: "0 22px 50px rgba(15,23,42,0.35)", // neutral shadow (no green)
+                  padding: 10,
+                  transform: "rotate(3deg)",
+                  zIndex: 2,
+                }}
+              >
+                <div
+                  style={{
+                    borderRadius: 22,
+                    overflow: "hidden",
+                  }}
+                >
+                  <img
+                    src="/after.png"
+                    alt="Listing after the flip"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      display: "block",
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right: copy */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                height: "100%",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 11,
+                  letterSpacing: 0.16,
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  color: "#16a34a",
+                  marginBottom: 6,
+                }}
+              ></div>
+
+              <h2
+                style={{
+                  fontSize: 32,
+                  fontWeight: 800,
+                  color: "#0f172a",
+                  marginBottom: 12,
+                }}
+              >
+                Built to turn flips into serious profit
+              </h2>
+
+              <p
+                style={{
+                  fontSize: 16,
+                  color: "#4b5563",
+                  maxWidth: 560,
+                  lineHeight: 1.7,
+                  marginBottom: 26,
+                }}
+              >
+                PriceScrub doesn&apos;t just show you comps. It lays out the
+                entire flip for you — from buy price to realistic resale value
+                — so you see your spread, fees, and take-home profit before you
+                ever hit buy.
+              </p>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "flex-start",
+                  gap: 20,
+                  flex: 1,
+                }}
+              >
+                {/* Bullet 1 */}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "999px",
+                      backgroundColor: "#16a34a",
+                      marginTop: 7,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#4b5563",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: "#111827",
+                      }}
+                    >
+                      See your upside in one view.
+                    </span>{" "}
+                    Buy price, true resale value, platform fees, and profit are
+                    all lined up so a $200 buy with $180 plus upside jumps out
+                    at you in seconds.
+                  </div>
+                </div>
+
+                {/* Bullet 2 */}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "999px",
+                      backgroundColor: "#16a34a",
+                      marginTop: 7,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#4b5563",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: "#111827",
+                      }}
+                    >
+                      Stack reliable $100–$300 profit flips.
+                    </span>{" "}
+                    AI throws out fake and wild comps and surfaces realistic,
+                    repeatable deals, so a handful of clean flips each week can
+                    add hundreds to a few thousand dollars a month.
+                  </div>
+                </div>
+
+                {/* Bullet 3 */}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <span
+                    style={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "999px",
+                      backgroundColor: "#16a34a",
+                      marginTop: 7,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div
+                    style={{
+                      fontSize: 14,
+                      color: "#4b5563",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 600,
+                        color: "#111827",
+                      }}
+                    >
+                      Move inventory in days, not months.
+                    </span>{" "}
+                    Demand labels and estimated sell windows point you toward
+                    fast-moving items so cash comes back quickly instead of
+                    sitting in dead stock.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
-
-      {/* FOOTER */}
-      <footer
-        style={{
-          padding: "40px 20px",
-          backgroundColor: "#e5e7eb",
-          color: "#111827",
-          width: "100%",
-          marginLeft: 0,
-          borderTop: "1px solid #d1d5db",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: 1120,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 32,
-          }}
-        >
-          {/* Brand */}
-          <div>
-            <h3
-              style={{
-                fontSize: 22,
-                fontWeight: 700,
-                color: "#111827",
-                marginBottom: 10,
-              }}
-            >
-              PriceScrub
-            </h3>
-            <p style={{ fontSize: 14, lineHeight: 1.5, color: "#374151" }}>
-              AI-powered product sourcing. Find real deals. Avoid fakes. Flip
-              smarter.
-            </p>
-          </div>
-
-          {/* Product */}
-          <div>
-            <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
-              Product
-            </h4>
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                lineHeight: 1.9,
-              }}
-            >
-              <li>
-                <a
-                  href="/"
-                  style={{ color: "#374151", textDecoration: "none" }}
-                >
-                  How It Works
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/"
-                  style={{ color: "#374151", textDecoration: "none" }}
-                >
-                  AI Analyzer
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/"
-                  style={{ color: "#374151", textDecoration: "none" }}
-                >
-                  Supported Sites
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Company */}
-          <div>
-            <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
-              Company
-            </h4>
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                lineHeight: 1.9,
-              }}
-            >
-              <li>
-                <a
-                  href="/login"
-                  style={{ color: "#374151", textDecoration: "none" }}
-                >
-                  Login
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/signup"
-                  style={{ color: "#374151", textDecoration: "none" }}
-                >
-                  Sign Up
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal */}
-          <div>
-            <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>
-              Legal
-            </h4>
-            <ul
-              style={{
-                listStyle: "none",
-                padding: 0,
-                margin: 0,
-                lineHeight: 1.9,
-              }}
-            >
-              <li>
-                <a href="#" style={{ color: "#374151", textDecoration: "none" }}>
-                  Terms of Service
-                </a>
-              </li>
-              <li>
-                <a href="#" style={{ color: "#374151", textDecoration: "none" }}>
-                  Privacy Policy
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div
-          style={{
-            textAlign: "center",
-            marginTop: 32,
-            fontSize: 12,
-            color: "#6b7280",
-          }}
-        >
-          © 2025 PriceScrub. All rights reserved.
-        </div>
-      </footer>
 
       {/* Responsive styles */}
       <style jsx>{`
@@ -838,23 +1001,28 @@ export default function HomePage() {
           }
 
           .feature-strip {
-            padding: 28px 18px;
+            padding: 24px 18px 30px;
             border-radius: 28px;
           }
 
           .analyzer-card {
-            padding: 22px;
+            padding: 24px;
             border-radius: 24px;
+          }
+
+          .money-section {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 24px;
           }
         }
 
         @media (max-width: 640px) {
           .hero-section h1 {
-            font-size: 32px;
+            font-size: 36px;
           }
 
           .analyzer-card {
-            padding: 18px;
+            padding: 20px;
           }
 
           .offer-card {
@@ -877,10 +1045,12 @@ export default function HomePage() {
 /* ---------- Small components ---------- */
 
 function FeatureCard({
+  stepLabel,
   title,
   description,
   imageSrc,
 }: {
+  stepLabel?: string;
   title: string;
   description: string;
   imageSrc: string;
@@ -888,55 +1058,109 @@ function FeatureCard({
   return (
     <div
       style={{
-        borderRadius: 40,
-        backgroundColor: "#ffffff",
-        border: "1px solid #e5e7eb",
-        padding: 20,
         display: "flex",
         flexDirection: "column",
         gap: 14,
-        boxShadow: "0 22px 55px rgba(148,163,184,0.35)",
-        height: "100%",
+        alignItems: "center",
+        textAlign: "center",
       }}
     >
+      {/* Step badge to the left, word perfectly centered */}
       <div
         style={{
+          display: "flex",
+          justifyContent: "center",
           width: "100%",
-          height: 220,
-          borderRadius: 28,
-          overflow: "hidden",
-          backgroundColor: "#f3f4f6",
         }}
       >
-        <img
-          src={imageSrc}
-          alt={title}
+        <div
+          style={{
+            position: "relative",
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          {stepLabel && (
+            <div
+              style={{
+                position: "absolute",
+                right: "100%",
+                marginRight: 10,
+                fontSize: 11,
+                letterSpacing: 0.14,
+                textTransform: "uppercase",
+                padding: "4px 11px",
+                borderRadius: 999,
+                backgroundColor: "#e5f7ec",
+                border: "1px solid #bbf7d0",
+                color: "#15803d",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {stepLabel}
+            </div>
+          )}
+
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: "#111827",
+              textAlign: "center",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {title}
+          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          borderRadius: 32,
+          backgroundColor: "#ffffff",
+          border: "1px solid #e5e7eb",
+          padding: 20,
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+          boxShadow: "0 22px 55px rgba(148, 163, 184, 0.35)",
+          width: "100%",
+          height: "100%",
+        }}
+      >
+        <div
           style={{
             width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            display: "block",
+            height: 220,
+            borderRadius: 24,
+            overflow: "hidden",
+            backgroundColor: "#f3f4f6",
           }}
-        />
+        >
+          <img
+            src={imageSrc}
+            alt={title}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
+        </div>
+        <p
+          style={{
+            fontSize: 14,
+            color: "#4b5563",
+            margin: 0,
+            lineHeight: 1.6,
+          }}
+        >
+          {description}
+        </p>
       </div>
-      <div
-        style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: "#111827",
-        }}
-      >
-        {title}
-      </div>
-      <p
-        style={{
-          fontSize: 14,
-          color: "#4b5563",
-          margin: 0,
-        }}
-      >
-        {description}
-      </p>
     </div>
   );
 }
@@ -954,7 +1178,7 @@ function SummaryCard({ label, value }: { label: string; value: any }) {
         borderRadius: 12,
         backgroundColor: "#ffffff",
         border: "1px solid #e5e7eb",
-        boxShadow: "0 8px 20px rgba(148,163,184,0.25)",
+        boxShadow: "0 8px 20px rgba(148, 163, 184, 0.25)",
       }}
     >
       <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 2 }}>
@@ -1011,8 +1235,8 @@ function OfferCard({
         color: "#111827",
         textDecoration: "none",
         boxShadow: highlight
-          ? "0 14px 32px rgba(74,222,128,0.45)"
-          : "0 8px 20px rgba(148,163,184,0.3)",
+          ? "0 14px 32px rgba(74, 222, 128, 0.45)"
+          : "0 8px 20px rgba(148, 163, 184, 0.3)",
         transition:
           "transform 0.08s ease-out, box-shadow 0.08s ease-out, border-color 0.08s ease-out",
       }}

@@ -12,7 +12,7 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: Connect to your auth backend
+    // TODO: connect to your real sign-up backend here
     console.log("Sign up with:", { email, password });
 
     setLoading(false);
@@ -22,67 +22,38 @@ export default function SignupPage() {
     <main
       style={{
         minHeight: "100vh",
-        backgroundColor: "#f9fafb",
-        padding: "32px 16px 72px",
-        fontFamily: "Georgia, 'Times New Roman', serif",
+        padding: "48px 16px 72px",
+        background:
+          "radial-gradient(circle at top, #eef2ff 0, #f9fafb 42%, #f3f4f6 100%)",
+        fontFamily:
+          "system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif",
       }}
     >
-      <div style={{ width: "100%", maxWidth: 960, margin: "0 auto" }}>
-        {/* Top bar */}
-        <header
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 40,
-          }}
-        >
-          <Link href="/">
-            <img
-              src="/Logo.png"
-              alt="PriceScrub logo"
-              style={{ height: 70, cursor: "pointer" }}
-            />
-          </Link>
-
-          <Link href="/login">
-            <button
-              type="button"
-              style={{
-                padding: "12px 32px",
-                borderRadius: 999,
-                border: "1px solid #cbd5e1",
-                background: "#f9fafb",
-                color: "#111827",
-                fontFamily: "Georgia, 'Times New Roman', serif",
-                fontSize: 15,
-                fontWeight: 600,
-                cursor: "pointer",
-                boxShadow: "0 2px 6px rgba(15,23,42,0.08)",
-              }}
-            >
-              Log In
-            </button>
-          </Link>
-        </header>
-
-        {/* Big signup card */}
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 960,
+          margin: "0 auto",
+        }}
+      >
+        {/* Sign up card */}
         <section
           style={{
-            borderRadius: 40,
-            padding: "40px 48px 36px",
+            borderRadius: 36,
+            padding: "40px 40px 34px",
             backgroundColor: "#ffffff",
-            boxShadow: "0 40px 120px rgba(15,23,42,0.25)",
-            border: "1px solid #e5e7eb",
-            maxWidth: 860,
-            margin: "0 auto",
+            boxShadow: "0 26px 70px rgba(148,163,184,0.45)",
+            border: "1px solid rgba(226,232,240,0.9)",
+            maxWidth: 820,
+            margin: "32px auto 0",
           }}
         >
           <h1
             style={{
-              fontSize: 36,
+              fontSize: 34,
               marginBottom: 10,
-              color: "#111827",
+              color: "#0f172a",
+              fontWeight: 800,
             }}
           >
             Create your PriceScrub account
@@ -92,17 +63,18 @@ export default function SignupPage() {
             style={{
               fontSize: 15,
               color: "#6b7280",
-              marginBottom: 28,
+              marginBottom: 26,
+              maxWidth: 520,
             }}
           >
-            Save searches, track deals, and sync your best flips across devices.
+            Take PriceScrub for a spin and start spotting high-confidence flips
+            in minutes.
           </p>
 
-          {/* Email/password form */}
           <form
             onSubmit={handleSubmit}
             style={{
-              maxWidth: 680,
+              maxWidth: 640,
               marginTop: 10,
             }}
           >
@@ -130,6 +102,8 @@ export default function SignupPage() {
                 border: "1px solid #d1d5db",
                 marginBottom: 16,
                 fontSize: 15,
+                color: "#111827",
+                outline: "none",
               }}
             />
 
@@ -157,10 +131,12 @@ export default function SignupPage() {
                 border: "1px solid #d1d5db",
                 marginBottom: 22,
                 fontSize: 15,
+                color: "#111827",
+                outline: "none",
               }}
             />
 
-            {/* Sign Up Button */}
+            {/* Sign up button */}
             <button
               type="submit"
               disabled={loading}
