@@ -76,7 +76,7 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* DESKTOP NAV + AUTH */}
+        {/* DESKTOP NAV */}
         <div
           className="navbar-right-desktop"
           style={{
@@ -159,9 +159,9 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* --------------------------- */}
-        {/* UPDATED MOBILE HAMBURGER   */}
-        {/* --------------------------- */}
+        {/* ---------------------------------------- */}
+        {/* PERFECT HAMBURGER ICON MATCHING YOUR IMAGE */}
+        {/* ---------------------------------------- */}
         <button
           type="button"
           className="navbar-toggle"
@@ -171,34 +171,34 @@ export default function Navbar() {
             marginLeft: "auto",
             background: "transparent",
             border: "none",
-            padding: 8,
+            padding: 6,
             cursor: "pointer",
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            gap: 6, // even spacing between bars
+            gap: 6, // even spacing between lines
           }}
         >
           <span
             style={{
-              width: 28,
-              height: 4,
+              width: 24,
+              height: 2,
               borderRadius: 999,
               backgroundColor: "#0f172a",
             }}
           />
           <span
             style={{
-              width: 28,
-              height: 4,
+              width: 24,
+              height: 2,
               borderRadius: 999,
               backgroundColor: "#0f172a",
             }}
           />
           <span
             style={{
-              width: 28,
-              height: 4,
+              width: 24,
+              height: 2,
               borderRadius: 999,
               backgroundColor: "#0f172a",
             }}
@@ -221,7 +221,7 @@ export default function Navbar() {
             flexDirection: "column",
           }}
         >
-          {/* Header row in mobile menu */}
+          {/* Header */}
           <div
             style={{
               display: "flex",
@@ -232,13 +232,13 @@ export default function Navbar() {
           >
             <Link
               href="/"
+              onClick={closeMenu}
               style={{
                 display: "flex",
                 alignItems: "baseline",
                 gap: 6,
                 textDecoration: "none",
               }}
-              onClick={closeMenu}
             >
               <span
                 style={{
@@ -312,12 +312,8 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Auth combined at bottom */}
-          <div
-            style={{
-              marginTop: "auto",
-            }}
-          >
+          {/* Auth Button */}
+          <div style={{ marginTop: "auto" }}>
             <Link href="/login" onClick={closeMenu}>
               <button
                 type="button"
