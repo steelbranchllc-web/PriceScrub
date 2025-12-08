@@ -1,3 +1,4 @@
+// app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
 import React from "react";
@@ -17,6 +18,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        {/* 👇 This is what makes mobile breakpoints work on real phones */}
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+      </head>
       <body>
         <Navbar />
         {children}

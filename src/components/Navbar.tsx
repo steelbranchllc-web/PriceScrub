@@ -159,7 +159,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* MOBILE HAMBURGER */}
+        {/* MOBILE HAMBURGER (display controlled by CSS) */}
         <button
           type="button"
           className="navbar-toggle"
@@ -170,7 +170,6 @@ export default function Navbar() {
             background: "transparent",
             border: "none",
             padding: 8,
-            display: "none", // overridden in CSS for mobile
             cursor: "pointer",
           }}
         >
