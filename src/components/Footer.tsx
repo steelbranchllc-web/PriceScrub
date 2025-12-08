@@ -31,7 +31,7 @@ export default function Footer() {
         }}
       >
         {/* Brand Section */}
-        <div>
+        <div className="footer-brand">
           <h3
             style={{
               fontSize: 24,
@@ -103,18 +103,24 @@ export default function Footer() {
       <style jsx>{`
         @media (max-width: 900px) {
           .footer-root {
-            padding: 32px 20px 16px;
+            padding: 32px 20px 18px;
           }
 
           .footer-grid {
             grid-template-columns: minmax(0, 1fr);
             gap: 24px;
-            padding-bottom: 24px;
+            padding-bottom: 20px;
+          }
+
+          .footer-brand {
+            text-align: center;
+            max-width: 420px;
+            margin: 0 auto;
           }
 
           .footer-bottom {
-            margin-top: 16px;
-            text-align: left;
+            margin-top: 8px;
+            text-align: center;
             max-width: 1120px;
             margin-left: auto;
             margin-right: auto;
@@ -123,7 +129,7 @@ export default function Footer() {
 
         @media (max-width: 640px) {
           .footer-root {
-            padding: 28px 16px 14px;
+            padding: 28px 16px 16px;
           }
 
           .footer-grid {
@@ -161,7 +167,7 @@ function FooterColumn({
       </h4>
 
       {links.map((link, index) => (
-        <div key={`${link.href}-${index}`} style={{ marginBottom: 8 }}>
+        <div key={`${link.href}-${index}`} style={{ marginBottom: 10 }}>
           <Link
             href={link.href}
             style={{
