@@ -38,7 +38,7 @@ export default function Navbar() {
           display: "flex",
           alignItems: "center",
           gap: 20,
-          flexWrap: "wrap", // allow wrapping on smaller widths
+          flexWrap: "nowrap",
         }}
       >
         {/* LOGO */}
@@ -162,46 +162,16 @@ export default function Navbar() {
         {/* MOBILE HAMBURGER */}
         <button
           type="button"
-          className="navbar-toggle"
-          aria-label="Open navigation menu"
+          className={`navbar-toggle ${
+            isMobileMenuOpen ? "navbar-toggle--open" : ""
+          }`}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMobileMenuOpen}
           onClick={() => setIsMobileMenuOpen((open) => !open)}
-          style={{
-            marginLeft: "auto",
-            background: "transparent",
-            border: "none",
-            padding: 8,
-            cursor: "pointer",
-          }}
         >
-          <span
-            style={{
-              display: "block",
-              width: 20,
-              height: 2,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-              marginBottom: 4,
-            }}
-          />
-          <span
-            style={{
-              display: "block",
-              width: 20,
-              height: 2,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-              marginBottom: 4,
-            }}
-          />
-          <span
-            style={{
-              display: "block",
-              width: 20,
-              height: 2,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-            }}
-          />
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
+          <span className="hamburger-line" />
         </button>
       </div>
 
@@ -218,10 +188,9 @@ export default function Navbar() {
             padding: "22px 20px 28px",
             display: "flex",
             flexDirection: "column",
-            overflowY: "auto",
           }}
         >
-          {/* Header row */}
+          {/* Header row in mobile menu */}
           <div
             style={{
               display: "flex",
@@ -312,7 +281,7 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Auth buttons */}
+          {/* Auth buttons pinned toward bottom */}
           <div
             style={{
               marginTop: "auto",
@@ -357,20 +326,37 @@ export default function Navbar() {
         </div>
       )}
 
-           <style jsx>{`
+      <style jsx>{`
         /* Desktop defaults */
         .navbar-toggle {
           display: none;
+          margin-left: auto;
+          background: transparent;
+          border: none;
+          padding: 8px;
+          cursor: pointer;
         }
 
-        /* 🔥 Treat either viewport OR device width as mobile */
-        @media only screen and (max-width: 900px), only screen and (max-device-width: 900px) {
+        .hamburger-line {
+          display: block;
+          width: 22px;
+          height: 2px;
+          border-radius: 999px;
+          background-color: #0f172a;
+          margin: 3px 0;
+        }
+
+        /* Mobile behavior */
+        @media (max-width: 900px) {
           .navbar-right-desktop {
             display: none !important;
           }
 
           .navbar-toggle {
-            display: inline-flex !important;
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
           }
         }
       `}</style>
