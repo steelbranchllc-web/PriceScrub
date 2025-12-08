@@ -85,7 +85,7 @@ export default function Footer() {
         />
       </div>
 
-      {/* COPYRIGHT — bottom */}
+      {/* COPYRIGHT */}
       <div
         className="footer-bottom"
         style={{
@@ -118,6 +118,20 @@ export default function Footer() {
             max-width: 1120px;
             margin-left: auto;
             margin-right: auto;
+          }
+        }
+
+        @media (max-width: 640px) {
+          .footer-root {
+            padding: 28px 16px 14px;
+          }
+
+          .footer-grid {
+            gap: 20px;
+          }
+
+          .footer-root h3 {
+            font-size: 20px;
           }
         }
       `}</style>

@@ -16,7 +16,7 @@ body {
     "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Layout */
+/* Layout (legacy app view – still safe to keep) */
 .app {
   min-height: 100vh;
   display: flex;
@@ -30,7 +30,7 @@ body {
   max-width: 960px;
 }
 
-/* Typography */
+/* Typography (legacy) */
 .app-header {
   text-align: center;
   margin-bottom: 32px;
@@ -51,7 +51,7 @@ body {
   color: #cbd5f5;
 }
 
-/* Search form */
+/* Search form (legacy) */
 .search-form {
   display: flex;
   flex-direction: column;
@@ -79,7 +79,7 @@ body {
   box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4);
 }
 
-/* Site picker */
+/* Site picker (legacy) */
 .site-picker {
   background-color: rgba(15, 23, 42, 0.9);
   border-radius: 16px;
@@ -136,7 +136,7 @@ body {
   box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.6);
 }
 
-/* Submit button */
+/* Submit button (legacy) */
 .search-actions {
   display: flex;
   justify-content: flex-end;
@@ -167,7 +167,7 @@ body {
   cursor: not-allowed;
 }
 
-/* Summary cards */
+/* Summary cards (legacy) */
 .summary {
   margin-bottom: 20px;
 }
@@ -215,7 +215,7 @@ body {
   font-weight: 600;
 }
 
-/* Sections */
+/* Sections (legacy) */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -243,7 +243,7 @@ body {
   color: #9ca3af;
 }
 
-/* Offer list */
+/* Offer list (legacy) */
 .offer-list {
   display: flex;
   flex-direction: column;
@@ -341,7 +341,7 @@ body {
   color: #9ca3af;
 }
 
-/* Empty state */
+/* Empty state (legacy) */
 .empty-state {
   margin-top: 16px;
   padding: 16px 14px;
@@ -353,7 +353,7 @@ body {
   text-align: center;
 }
 
-/* Error */
+/* Error (legacy) */
 .error-box {
   margin-bottom: 16px;
   padding: 10px 12px;
@@ -363,7 +363,8 @@ body {
   font-size: 14px;
   color: #fecaca;
 }
-/* ============ NAVBAR ============ */
+
+/* ============ LEGACY NAVBAR (old, safe to keep) ============ */
 
 .navbar {
   width: 100%;
@@ -429,4 +430,135 @@ body {
   font-weight: 600;
   color: #0f172a;
   text-decoration: none;
+}
+
+/* ========= Global mobile safety tweaks ========= */
+
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ========= NEW: Responsive rules for Navbar + main landing page ========= */
+
+/* Tablet / small desktop */
+@media (max-width: 900px) {
+  /* Navbar: hide desktop links, show hamburger */
+  .navbar-right-desktop {
+    display: none !important;
+  }
+
+  .navbar-toggle {
+    display: inline-flex !important;
+  }
+
+  /* Main layout */
+  .page-main {
+    padding: 28px 12px 72px !important;
+  }
+
+  .hero-section {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 24px !important;
+    margin-bottom: 52px !important;
+  }
+
+  .hero-section > div:last-child {
+    height: 260px !important;
+  }
+
+  .feature-strip {
+    padding: 24px 18px 30px !important;
+    border-radius: 28px !important;
+    margin-top: 40px !important;
+    margin-bottom: 60px !important;
+  }
+
+  .analyzer-card {
+    padding: 24px !important;
+    border-radius: 24px !important;
+  }
+
+  .money-section {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 32px !important;
+    margin-top: 72px !important;
+    margin-bottom: 72px !important;
+  }
+}
+
+/* Phone */
+@media (max-width: 640px) {
+  .app {
+    padding: 24px 12px;
+  }
+
+  .offer-layout {
+    flex-direction: column;
+  }
+
+  .offer-price-block {
+    text-align: left;
+    margin-top: 6px;
+  }
+
+  .navbar-inner {
+    padding: 0 16px;
+  }
+
+  .hero-title {
+    font-size: 32px !important;
+    line-height: 1.15 !important;
+  }
+
+  .feature-strip h2,
+  .analyzer-title,
+  .money-title {
+    font-size: 24px !important;
+  }
+
+  .analyzer-card {
+    padding: 20px !important;
+  }
+
+  .money-section > div:first-child {
+    height: 260px !important;
+    margin-top: 16px !important;
+  }
+
+  .offer-card {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .offer-card-right {
+    text-align: left !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    margin-top: 6px !important;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  .page-main {
+    padding: 20px 10px 60px !important;
+  }
+
+  .feature-strip {
+    padding: 20px 14px 26px !important;
+  }
+
+  .money-section {
+    margin-top: 56px !important;
+    margin-bottom: 56px !important;
+  }
 }

@@ -11,10 +11,11 @@ export const metadata: Metadata = {
     "Flipper-grade AI for finding real spreads in messy marketplaces.",
 };
 
-// ✅ Correct Next.js App Router viewport declaration
+// 👇 This is what tells iPhone “use real device width”
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
   viewportFit: "cover",
 };
 

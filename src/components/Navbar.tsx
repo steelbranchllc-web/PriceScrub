@@ -38,7 +38,7 @@ export default function Navbar() {
           display: "flex",
           alignItems: "center",
           gap: 20,
-          flexWrap: "nowrap",
+          flexWrap: "wrap", // allow wrapping on smaller widths
         }}
       >
         {/* LOGO */}
@@ -159,7 +159,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* MOBILE HAMBURGER (display controlled by CSS) */}
+        {/* MOBILE HAMBURGER */}
         <button
           type="button"
           className="navbar-toggle"
@@ -218,9 +218,10 @@ export default function Navbar() {
             padding: "22px 20px 28px",
             display: "flex",
             flexDirection: "column",
+            overflowY: "auto",
           }}
         >
-          {/* Header row in mobile menu */}
+          {/* Header row */}
           <div
             style={{
               display: "flex",
@@ -311,7 +312,7 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Auth buttons pinned toward bottom */}
+          {/* Auth buttons */}
           <div
             style={{
               marginTop: "auto",
@@ -356,19 +357,20 @@ export default function Navbar() {
         </div>
       )}
 
-      <style jsx>{`
+           <style jsx>{`
         /* Desktop defaults */
         .navbar-toggle {
           display: none;
         }
 
-        @media (max-width: 900px) {
+        /* 🔥 Treat either viewport OR device width as mobile */
+        @media only screen and (max-width: 900px), only screen and (max-device-width: 900px) {
           .navbar-right-desktop {
-            display: none;
+            display: none !important;
           }
 
           .navbar-toggle {
-            display: inline-flex;
+            display: inline-flex !important;
           }
         }
       `}</style>

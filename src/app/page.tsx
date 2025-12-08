@@ -1,3 +1,4 @@
+// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -18,7 +19,7 @@ type BaseAnalyzedOffer = {
   price: number | null;
   currency: string | null;
   url: string;
-  source: string; // "facebook", "ebay", "all-retail", etc.
+  source: string;
   imageUrl?: string | null;
   location?: string | null;
 
@@ -29,21 +30,18 @@ type BaseAnalyzedOffer = {
 
   discountPctVsMedian?: number | null;
 
-  // item-specific stats keyed by product name
   productMarketStats?: PriceStats | null;
   discountPctVsProductMedian?: number | null;
 
-  // AI demand info
   demandLabel?: string | null;
   estimatedSellTime?: string | null;
 
-  // AI estimated value (true market value)
   aiEstimatedValue?: number | null;
 };
 
 type EnrichedOffer = BaseAnalyzedOffer & {
-  profitVsAvg?: number | null; // est. value - price
-  roiVsAvg?: number | null; // (est. value - price) / price * 100
+  profitVsAvg?: number | null;
+  roiVsAvg?: number | null;
 };
 
 type SearchResponse = {
@@ -118,7 +116,6 @@ export default function HomePage() {
       if (!res.ok)
         throw new Error((data as any).error || "Failed to fetch offers");
 
-      // Enrich with profit / ROI vs AI est. value
       let enriched: EnrichedOffer[] = (data.listings || []).map((offer) => {
         const estValue =
           typeof offer.aiEstimatedValue === "number"
@@ -143,7 +140,7 @@ export default function HomePage() {
         };
       });
 
-      // 🔒 Drop listings with 0 or negative ROI, or broken math
+      // filter out non-profitable / bad math
       enriched = enriched.filter((offer) => {
         const roi = offer.roiVsAvg;
         if (roi == null || Number.isNaN(roi as number) || roi <= 0) {
@@ -158,7 +155,7 @@ export default function HomePage() {
         return true;
       });
 
-      // Sort by ROI desc; if ROI missing, fall back to price asc
+      // sort by ROI desc
       const sortedByROI = [...enriched].sort((a, b) => {
         const hasRoiA =
           typeof a.roiVsAvg === "number" && !Number.isNaN(a.roiVsAvg);
@@ -212,6 +209,7 @@ export default function HomePage() {
       }}
     >
       <main
+        className="page-main"
         style={{
           padding: "36px 8px 88px",
           flex: 1,
@@ -238,6 +236,7 @@ export default function HomePage() {
             {/* Hero text */}
             <div>
               <h1
+                className="hero-title"
                 style={{
                   fontSize: 56,
                   lineHeight: 1.02,
@@ -397,6 +396,7 @@ export default function HomePage() {
               }}
             >
               <h2
+                className="analyzer-title"
                 style={{
                   fontSize: 35,
                   fontWeight: 700,
@@ -821,6 +821,7 @@ export default function HomePage() {
               }}
             >
               <h2
+                className="money-title"
                 style={{
                   fontSize: 32,
                   fontWeight: 800,
@@ -956,72 +957,98 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* Responsive styles */}
+      {/* 🔥 Responsive styles for this page */}
       <style jsx>{`
         /* Tablet / small desktop */
-        @media (max-width: 900px) {
+        @media only screen and (max-width: 900px), only screen and (max-device-width: 900px) {
+          .page-main {
+            padding: 28px 12px 72px !important;
+          }
+
           .hero-section {
-            grid-template-columns: minmax(0, 1fr);
-            gap: 24px;
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 24px !important;
+            margin-bottom: 52px !important;
           }
 
           .hero-section > div:last-child {
-            height: 260px;
+            height: 260px !important;
           }
 
           .feature-strip {
-            padding: 24px 18px 30px;
-            border-radius: 28px;
-            margin-top: 40px;
-            margin-bottom: 60px;
+            padding: 24px 18px 30px !important;
+            border-radius: 28px !important;
+            margin-top: 40px !important;
+            margin-bottom: 60px !important;
           }
 
           .analyzer-card {
-            padding: 24px;
-            border-radius: 24px;
+            padding: 24px !important;
+            border-radius: 24px !important;
           }
 
           .money-section {
-            grid-template-columns: minmax(0, 1fr);
-            gap: 32px;
-            margin-top: 72px;
-            margin-bottom: 72px;
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 32px !important;
+            margin-top: 72px !important;
+            margin-bottom: 72px !important;
           }
         }
 
         /* Phone */
-        @media (max-width: 640px) {
-          .hero-section h1 {
-            font-size: 36px;
-            line-height: 1.1;
+        @media only screen and (max-width: 640px), only screen and (max-device-width: 640px) {
+          .hero-title {
+            font-size: 32px !important;
+            line-height: 1.15 !important;
+          }
+
+          .feature-strip h2 {
+            font-size: 24px !important;
+          }
+
+          .analyzer-title {
+            font-size: 24px !important;
+          }
+
+          .money-title {
+            font-size: 24px !important;
           }
 
           .analyzer-card {
-            padding: 20px;
+            padding: 20px !important;
+          }
+
+          .money-section > div:first-child {
+            height: 260px !important;
+            margin-top: 16px !important;
           }
 
           .offer-card {
-            flex-direction: column;
-            align-items: flex-start;
+            flex-direction: column !important;
+            align-items: flex-start !important;
           }
 
           .offer-card-right {
-            text-align: left;
-            min-width: 0;
-            width: 100%;
-            margin-top: 6px;
+            text-align: left !important;
+            min-width: 0 !important;
+            width: 100% !important;
+            margin-top: 6px !important;
           }
         }
 
         /* Extra small phones */
-        @media (max-width: 480px) {
+        @media only screen and (max-width: 480px), only screen and (max-device-width: 480px) {
+          .page-main {
+            padding: 20px 10px 60px !important;
+          }
+
           .feature-strip {
-            padding: 20px 14px 26px;
+            padding: 20px 14px 26px !important;
           }
 
           .money-section {
-            margin-top: 56px;
-            margin-bottom: 56px;
+            margin-top: 56px !important;
+            margin-bottom: 56px !important;
           }
         }
       `}</style>
