@@ -752,22 +752,22 @@ export default function HomePage() {
               marginBottom: 96,
             }}
           >
-            {/* Left: two separate cards, diagonally overlapped, slightly smaller, no green glow */}
+            {/* Left: two separate cards, diagonally overlapped */}
             <div
               style={{
                 position: "relative",
                 width: "100%",
-                height: 340, // was 380
+                height: 340,
                 marginTop: 40,
               }}
             >
-              {/* BEFORE card (bottom-left) */}
+              {/* BEFORE card */}
               <div
                 style={{
                   position: "absolute",
                   bottom: 0,
                   left: 0,
-                  width: "48%", // was 52%
+                  width: "48%",
                   borderRadius: 28,
                   backgroundColor: "#ffffff",
                   boxShadow: "0 22px 50px rgba(15,23,42,0.35)",
@@ -795,16 +795,16 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* AFTER card (top-right) */}
+              {/* AFTER card */}
               <div
                 style={{
                   position: "absolute",
                   top: 0,
                   right: 0,
-                  width: "48%", // was 52%
+                  width: "48%",
                   borderRadius: 28,
                   backgroundColor: "#ffffff",
-                  boxShadow: "0 22px 50px rgba(15,23,42,0.35)", // neutral shadow (no green)
+                  boxShadow: "0 22px 50px rgba(15,23,42,0.35)",
                   padding: 10,
                   transform: "rotate(3deg)",
                   zIndex: 2,
@@ -838,17 +838,6 @@ export default function HomePage() {
                 height: "100%",
               }}
             >
-              <div
-                style={{
-                  fontSize: 11,
-                  letterSpacing: 0.16,
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                  color: "#16a34a",
-                  marginBottom: 6,
-                }}
-              ></div>
-
               <h2
                 style={{
                   fontSize: 32,
@@ -870,8 +859,8 @@ export default function HomePage() {
                 }}
               >
                 PriceScrub doesn&apos;t just show you comps. It lays out the
-                entire flip for you — from buy price to realistic resale value
-                — so you see your spread, fees, and take-home profit before you
+                entire flip for you — from buy price to realistic resale value —
+                so you see your spread, fees, and take-home profit before you
                 ever hit buy.
               </p>
 

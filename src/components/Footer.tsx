@@ -5,6 +5,7 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer
+      className="footer-root"
       style={{
         padding: "40px 32px 20px",
         backgroundColor: "#e5e7eb",
@@ -17,6 +18,7 @@ export default function Footer() {
     >
       {/* Top grid area */}
       <div
+        className="footer-grid"
         style={{
           maxWidth: 1120,
           margin: "0 auto",
@@ -85,6 +87,7 @@ export default function Footer() {
 
       {/* COPYRIGHT — bottom */}
       <div
+        className="footer-bottom"
         style={{
           textAlign: "center",
           marginTop: "auto",
@@ -96,6 +99,28 @@ export default function Footer() {
       >
         © 2025 PriceScrub. All rights reserved.
       </div>
+
+      <style jsx>{`
+        @media (max-width: 900px) {
+          .footer-root {
+            padding: 32px 20px 16px;
+          }
+
+          .footer-grid {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 24px;
+            padding-bottom: 24px;
+          }
+
+          .footer-bottom {
+            margin-top: 16px;
+            text-align: left;
+            max-width: 1120px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+        }
+      `}</style>
     </footer>
   );
 }
@@ -126,7 +151,7 @@ function FooterColumn({
           <Link
             href={link.href}
             style={{
-              color: "#6b7280", // lighter black / premium gray
+              color: "#6b7280",
               textDecoration: "none",
               fontSize: 14,
               fontWeight: 500,
