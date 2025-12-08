@@ -160,7 +160,7 @@ export default function Navbar() {
         </div>
 
         {/* --------------------------- */}
-        {/* UPDATED MOBILE HAMBURGER */}
+        {/* UPDATED MOBILE HAMBURGER   */}
         {/* --------------------------- */}
         <button
           type="button"
@@ -175,31 +175,31 @@ export default function Navbar() {
             cursor: "pointer",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "space-between",
-            height: 20,
+            justifyContent: "center",
+            gap: 6, // even spacing between bars
           }}
         >
           <span
             style={{
-              width: 26,
-              height: 3,
-              borderRadius: 3,
+              width: 28,
+              height: 4,
+              borderRadius: 999,
               backgroundColor: "#0f172a",
             }}
           />
           <span
             style={{
-              width: 26,
-              height: 3,
-              borderRadius: 3,
+              width: 28,
+              height: 4,
+              borderRadius: 999,
               backgroundColor: "#0f172a",
             }}
           />
           <span
             style={{
-              width: 26,
-              height: 3,
-              borderRadius: 3,
+              width: 28,
+              height: 4,
+              borderRadius: 999,
               backgroundColor: "#0f172a",
             }}
           />
