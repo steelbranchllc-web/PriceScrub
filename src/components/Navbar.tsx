@@ -18,7 +18,6 @@ export default function Navbar() {
 
   return (
     <header
-      className="navbar-root"
       style={{
         width: "100%",
         padding: "22px 16px",
@@ -30,7 +29,6 @@ export default function Navbar() {
       }}
     >
       <div
-        className="navbar-inner"
         style={{
           width: "100%",
           maxWidth: 1120,
@@ -38,19 +36,18 @@ export default function Navbar() {
           display: "flex",
           alignItems: "center",
           gap: 20,
-          flexWrap: "nowrap",
         }}
       >
         {/* LOGO */}
         <Link
           href="/"
+          onClick={closeMenu}
           style={{
             display: "flex",
             alignItems: "baseline",
             gap: 6,
             textDecoration: "none",
           }}
-          onClick={closeMenu}
         >
           <span
             style={{
@@ -62,7 +59,6 @@ export default function Navbar() {
           >
             PriceScrub
           </span>
-
           <span
             style={{
               fontSize: 13,
@@ -78,25 +74,21 @@ export default function Navbar() {
 
         {/* DESKTOP NAV */}
         <div
-          className="navbar-right-desktop"
+          className="desktop-nav"
           style={{
             marginLeft: "auto",
             display: "flex",
             alignItems: "center",
             gap: 32,
-            flexWrap: "wrap",
-            justifyContent: "flex-end",
           }}
         >
           <nav
-            className="navbar-links-desktop"
             style={{
               display: "flex",
               alignItems: "center",
               gap: 26,
               fontSize: 16,
               fontWeight: 500,
-              flexWrap: "wrap",
             }}
           >
             {navItems.map((item) => (
@@ -106,9 +98,7 @@ export default function Navbar() {
                 style={{
                   textDecoration: "none",
                   color: "#0f172a",
-                  fontWeight: 500,
                   whiteSpace: "nowrap",
-                  transition: "opacity 0.12s ease",
                 }}
               >
                 {item.label}
@@ -116,14 +106,7 @@ export default function Navbar() {
             ))}
           </nav>
 
-          <div
-            className="navbar-auth-desktop"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <Link
               href="/login"
               style={{
@@ -131,13 +114,12 @@ export default function Navbar() {
                 color: "#0f172a",
                 textDecoration: "none",
                 fontWeight: 500,
-                whiteSpace: "nowrap",
               }}
             >
               Log in
             </Link>
 
-            <Link href="/signup" style={{ textDecoration: "none" }}>
+            <Link href="/signup">
               <button
                 type="button"
                 style={{
@@ -150,7 +132,6 @@ export default function Navbar() {
                   fontWeight: 600,
                   cursor: "pointer",
                   boxShadow: "0 6px 18px rgba(15,23,42,0.08)",
-                  whiteSpace: "nowrap",
                 }}
               >
                 Sign Up
@@ -159,57 +140,32 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ---------------------------------------- */}
-        {/* PERFECT HAMBURGER ICON MATCHING YOUR IMAGE */}
-        {/* ---------------------------------------- */}
+        {/* HAMBURGER (MOBILE ONLY) */}
         <button
           type="button"
-          className="navbar-toggle"
+          className="mobile-toggle"
           aria-label="Open navigation menu"
-          onClick={() => setIsMobileMenuOpen((open) => !open)}
+          onClick={() => setIsMobileMenuOpen(true)}
           style={{
             marginLeft: "auto",
             background: "transparent",
             border: "none",
             padding: 6,
             cursor: "pointer",
-            display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            gap: 6, // even spacing between lines
+            gap: 6,
           }}
         >
-          <span
-            style={{
-              width: 24,
-              height: 2,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-            }}
-          />
-          <span
-            style={{
-              width: 24,
-              height: 2,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-            }}
-          />
-          <span
-            style={{
-              width: 24,
-              height: 2,
-              borderRadius: 999,
-              backgroundColor: "#0f172a",
-            }}
-          />
+          <span style={{ width: 24, height: 2, backgroundColor: "#0f172a", borderRadius: 999 }} />
+          <span style={{ width: 24, height: 2, backgroundColor: "#0f172a", borderRadius: 999 }} />
+          <span style={{ width: 24, height: 2, backgroundColor: "#0f172a", borderRadius: 999 }} />
         </button>
       </div>
 
-      {/* MOBILE MENU OVERLAY */}
+      {/* MOBILE MENU */}
       {isMobileMenuOpen && (
         <div
-          className="navbar-mobile-menu"
           style={{
             position: "fixed",
             inset: 0,
@@ -221,7 +177,7 @@ export default function Navbar() {
             flexDirection: "column",
           }}
         >
-          {/* Header */}
+          {/* Mobile header */}
           <div
             style={{
               display: "flex",
@@ -240,14 +196,7 @@ export default function Navbar() {
                 textDecoration: "none",
               }}
             >
-              <span
-                style={{
-                  fontSize: 26,
-                  fontWeight: 800,
-                  letterSpacing: -0.04,
-                  color: "#0f172a",
-                }}
-              >
+              <span style={{ fontSize: 26, fontWeight: 800, color: "#0f172a" }}>
                 PriceScrub
               </span>
               <span
@@ -264,29 +213,20 @@ export default function Navbar() {
             </Link>
 
             <button
-              type="button"
               onClick={closeMenu}
-              aria-label="Close navigation menu"
               style={{
                 background: "transparent",
                 border: "none",
-                padding: 6,
+                fontSize: 28,
                 cursor: "pointer",
+                color: "#0f172a",
               }}
             >
-              <span
-                style={{
-                  fontSize: 28,
-                  lineHeight: 1,
-                  color: "#0f172a",
-                }}
-              >
-                ×
-              </span>
+              ×
             </button>
           </div>
 
-          {/* Links */}
+          {/* Mobile links */}
           <nav
             style={{
               display: "flex",
@@ -294,7 +234,6 @@ export default function Navbar() {
               gap: 22,
               fontSize: 20,
               fontWeight: 600,
-              color: "#0f172a",
             }}
           >
             {navItems.map((item) => (
@@ -302,28 +241,23 @@ export default function Navbar() {
                 key={item.href}
                 href={item.href}
                 onClick={closeMenu}
-                style={{
-                  textDecoration: "none",
-                  color: "#0f172a",
-                }}
+                style={{ textDecoration: "none", color: "#0f172a" }}
               >
                 {item.label}
               </Link>
             ))}
           </nav>
 
-          {/* Auth Button */}
+          {/* Mobile auth */}
           <div style={{ marginTop: "auto" }}>
             <Link href="/login" onClick={closeMenu}>
               <button
-                type="button"
                 style={{
                   width: "100%",
-                  padding: "12px 20px",
+                  padding: "14px 20px",
                   borderRadius: 999,
                   border: "1px solid rgba(148,163,184,0.6)",
-                  backgroundColor: "#ffffff",
-                  color: "#0f172a",
+                  background: "#ffffff",
                   fontSize: 16,
                   fontWeight: 600,
                   cursor: "pointer",
@@ -338,16 +272,16 @@ export default function Navbar() {
       )}
 
       <style jsx>{`
-        .navbar-toggle {
+        .mobile-toggle {
           display: none;
         }
 
         @media (max-width: 900px) {
-          .navbar-right-desktop {
+          .desktop-nav {
             display: none;
           }
 
-          .navbar-toggle {
+          .mobile-toggle {
             display: inline-flex;
           }
         }
