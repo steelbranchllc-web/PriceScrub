@@ -119,7 +119,7 @@ export default function Navbar() {
               Log in
             </Link>
 
-            <Link href="/signup">
+            <Link href="/signup" style={{ textDecoration: "none" }}>
               <button
                 type="button"
                 style={{
@@ -177,7 +177,6 @@ export default function Navbar() {
             flexDirection: "column",
           }}
         >
-          {/* Mobile header */}
           <div
             style={{
               display: "flex",
@@ -213,20 +212,22 @@ export default function Navbar() {
             </Link>
 
             <button
+              type="button"
               onClick={closeMenu}
+              aria-label="Close navigation menu"
               style={{
                 background: "transparent",
                 border: "none",
-                fontSize: 28,
+                padding: 6,
                 cursor: "pointer",
-                color: "#0f172a",
               }}
             >
-              ×
+              <span style={{ fontSize: 28, lineHeight: 1, color: "#0f172a" }}>
+                ×
+              </span>
             </button>
           </div>
 
-          {/* Mobile links */}
           <nav
             style={{
               display: "flex",
@@ -234,6 +235,7 @@ export default function Navbar() {
               gap: 22,
               fontSize: 20,
               fontWeight: 600,
+              color: "#0f172a",
             }}
           >
             {navItems.map((item) => (
@@ -248,16 +250,17 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* Mobile auth */}
           <div style={{ marginTop: "auto" }}>
             <Link href="/login" onClick={closeMenu}>
               <button
+                type="button"
                 style={{
                   width: "100%",
                   padding: "14px 20px",
                   borderRadius: 999,
                   border: "1px solid rgba(148,163,184,0.6)",
                   background: "#ffffff",
+                  color: "#0f172a",
                   fontSize: 16,
                   fontWeight: 600,
                   cursor: "pointer",
