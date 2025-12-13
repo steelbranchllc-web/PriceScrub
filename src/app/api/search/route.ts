@@ -53,12 +53,17 @@ export type AnalyzedOffer = {
 
   // AI “true value” logic for ALL categories
   aiTrueValue?: number | null; // legacy name
-  aiEstimatedValue?: number | null; // <- what the UI will read
+  aiEstimatedValue?: number | null; // <- what UI will read
   aiConfidence?: number | null; // 0–1
   aiDemandScore?: number | null; // 1–5
   aiSellTimeDaysMin?: number | null;
   aiSellTimeDaysMax?: number | null;
   aiShouldIgnore?: boolean | null; // obvious trash/mispriced
+
+  // NEW: make this an actual flipping engine
+  aiPriceRangeLow?: number | null;
+  aiPriceRangeHigh?: number | null;
+  aiMaxBuyPrice?: number | null; // “buy at or below this”
 
   // AI authenticity / fake-product filtering
   aiIsLikelyAuthentic?: boolean | null;
@@ -82,9 +87,7 @@ export type SearchResponse = {
 
 // ---------- Utility: compute stats ----------
 function computePriceStats(prices: number[]): PriceStats {
-  if (!prices.length) {
-    return { median: null, average: null, min: null, max: null };
-  }
+  if (!prices.length) return { median: null, average: null, min: null, max: null };
 
   const sorted = [...prices].sort((a, b) => a - b);
   const min = sorted[0];
@@ -92,10 +95,7 @@ function computePriceStats(prices: number[]): PriceStats {
   const sum = sorted.reduce((acc, v) => acc + v, 0);
   const average = sum / sorted.length;
   const mid = Math.floor(sorted.length / 2);
-  const median =
-    sorted.length % 2 === 0
-      ? (sorted[mid - 1] + sorted[mid]) / 2
-      : sorted[mid];
+  const median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 
   return { median, average, min, max };
 }
@@ -103,6 +103,31 @@ function computePriceStats(prices: number[]): PriceStats {
 function normalizeProductKey(title: string | null | undefined): string {
   if (!title) return "";
   return title.toLowerCase().trim();
+}
+
+// ---------- Robust JSON parsing (fixes your “unterminated string” failures) ----------
+function extractJsonObject(text: string): string | null {
+  const first = text.indexOf("{");
+  const last = text.lastIndexOf("}");
+  if (first === -1 || last === -1 || last <= first) return null;
+  return text.slice(first, last + 1);
+}
+
+function safeParseJsonObject<T = any>(raw: string): T | null {
+  // 1) try direct
+  try {
+    return JSON.parse(raw) as T;
+  } catch {}
+
+  // 2) try extracting JSON object from surrounding text
+  const extracted = extractJsonObject(raw);
+  if (extracted) {
+    try {
+      return JSON.parse(extracted) as T;
+    } catch {}
+  }
+
+  return null;
 }
 
 // Compute internal stats & discounts (just from the scraped listings)
@@ -187,10 +212,7 @@ function addStatsAndDiscounts(listings: AnalyzedOffer[]): {
 // ---------- SerpAPI (retail sites) ----------
 function mapSerpItemToOffer(item: any, siteLabel: string): AnalyzedOffer {
   const priceStr: string | undefined =
-    item.price ||
-    item.extracted_price?.toString() ||
-    item.price_with_tax ||
-    undefined;
+    item.price || item.extracted_price?.toString() || item.price_with_tax || undefined;
 
   let price: number | null = null;
   if (priceStr) {
@@ -200,8 +222,7 @@ function mapSerpItemToOffer(item: any, siteLabel: string): AnalyzedOffer {
   }
 
   const currency: string | null = item.currency || item.currency_symbol || null;
-  const retailer: string =
-    (item.source as string) || (item.seller as string) || siteLabel;
+  const retailer: string = (item.source as string) || (item.seller as string) || siteLabel;
 
   let fees: number | null = null;
   let shipping: number | null = null;
@@ -216,11 +237,7 @@ function mapSerpItemToOffer(item: any, siteLabel: string): AnalyzedOffer {
   }
 
   const baseId =
-    item.product_id ||
-    item.serpapi_product_id ||
-    item.offer_id ||
-    item.position ||
-    item.link;
+    item.product_id || item.serpapi_product_id || item.offer_id || item.position || item.link;
 
   const id = `${siteLabel}-${String(baseId)}`;
 
@@ -241,10 +258,7 @@ function mapSerpItemToOffer(item: any, siteLabel: string): AnalyzedOffer {
   };
 }
 
-async function searchRetailSites(
-  query: string,
-  site: string | "any"
-): Promise<AnalyzedOffer[]> {
+async function searchRetailSites(query: string, site: string | "any"): Promise<AnalyzedOffer[]> {
   if (!SERPAPI_API_KEY) return [];
 
   const params: Record<string, string> = {
@@ -278,9 +292,7 @@ async function searchRetailSites(
     label = site;
   }
 
-  const searchUrl =
-    "https://serpapi.com/search?" + new URLSearchParams(params).toString();
-
+  const searchUrl = "https://serpapi.com/search?" + new URLSearchParams(params).toString();
   const res = await fetch(searchUrl);
 
   if (!res.ok) {
@@ -311,25 +323,15 @@ function mapFacebookItemToOffer(item: any): AnalyzedOffer {
   const imageUrl =
     item.primary_listing_photo?.listing_image?.uri ||
     item.primary_listing_photo?.image?.uri ||
-    (Array.isArray(item.listing_photos) &&
-      item.listing_photos[0]?.image?.uri) ||
+    (Array.isArray(item.listing_photos) && item.listing_photos[0]?.image?.uri) ||
     null;
 
   const url =
-    item.story?.url ||
-    (item.id
-      ? `https://www.facebook.com/marketplace/item/${item.id}/`
-      : "");
+    item.story?.url || (item.id ? `https://www.facebook.com/marketplace/item/${item.id}/` : "");
 
-  const location =
-    item.location_text?.text ||
-    item.location?.reverse_geocode?.city ||
-    null;
+  const location = item.location_text?.text || item.location?.reverse_geocode?.city || null;
 
-  const title =
-    item.custom_title ||
-    item.marketplace_listing_title ||
-    "Untitled listing";
+  const title = item.custom_title || item.marketplace_listing_title || "Untitled listing";
 
   let fees: number | null = null;
   let shipping: number | null = null;
@@ -366,10 +368,7 @@ async function scrapeFacebookListings(query: string): Promise<AnalyzedOffer[]> {
     return [];
   }
 
-  const fbUrl = `https://www.facebook.com/marketplace/search/?query=${encodeURIComponent(
-    query
-  )}`;
-
+  const fbUrl = `https://www.facebook.com/marketplace/search/?query=${encodeURIComponent(query)}`;
   console.log("🔥 Scraping FB URL:", fbUrl);
 
   const runRes = await fetch(
@@ -382,10 +381,7 @@ async function scrapeFacebookListings(query: string): Promise<AnalyzedOffer[]> {
         deepScrape: false,
         maxItems: FB_COUNT,
         maxItemsPerStartUrl: FB_COUNT,
-        proxy: {
-          useApifyProxy: true,
-          countryCode: "US",
-        },
+        proxy: { useApifyProxy: true, countryCode: "US" },
       }),
     }
   );
@@ -405,18 +401,11 @@ async function scrapeFacebookListings(query: string): Promise<AnalyzedOffer[]> {
   }
 
   if (run.status !== "SUCCEEDED") {
-    console.error(
-      "❌ Apify run did not succeed:",
-      run.status,
-      run.statusMessage
-    );
+    console.error("❌ Apify run did not succeed:", run.status, run.statusMessage);
     throw new Error(run.statusMessage || "Facebook scraper failed");
   }
 
-  const datasetId =
-    run.defaultDatasetId ||
-    run.output?.defaultDatasetId ||
-    run.defaultDatasetId;
+  const datasetId = run.defaultDatasetId || run.output?.defaultDatasetId || run.defaultDatasetId;
 
   if (!datasetId) {
     console.error("❌ No datasetId found on run:", run);
@@ -439,9 +428,7 @@ async function scrapeFacebookListings(query: string): Promise<AnalyzedOffer[]> {
   const offers = rawItems.map(mapFacebookItemToOffer);
 
   const uniqueMap = new Map<string, AnalyzedOffer>();
-  for (const o of offers) {
-    if (!uniqueMap.has(o.id)) uniqueMap.set(o.id, o);
-  }
+  for (const o of offers) if (!uniqueMap.has(o.id)) uniqueMap.set(o.id, o);
 
   return Array.from(uniqueMap.values());
 }
@@ -474,24 +461,9 @@ function mapEbayItemToOffer(item: any): AnalyzedOffer {
     item.currency ||
     "USD";
 
-  const imageUrl =
-    item.imageUrl ||
-    item.image ||
-    item.galleryURL ||
-    item.thumbnail ||
-    null;
-
-  const url =
-    item.url ||
-    item.viewItemURL ||
-    item.detailPageURL ||
-    "";
-
-  const location =
-    item.location ||
-    item.sellerLocation ||
-    null;
-
+  const imageUrl = item.imageUrl || item.image || item.galleryURL || item.thumbnail || null;
+  const url = item.url || item.viewItemURL || item.detailPageURL || "";
+  const location = item.location || item.sellerLocation || null;
   const title = item.title || "Untitled listing";
 
   let fees: number | null = null;
@@ -533,22 +505,13 @@ async function scrapeEbayListings(query: string): Promise<AnalyzedOffer[]> {
 
   console.log("🔥 Scraping eBay for query:", query);
 
-  const ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(
-    query
-  )}`;
+  const ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(query)}`;
 
   const payload = {
     count: EBAY_COUNT,
     deepScrape: false,
-    proxy: {
-      useApifyProxy: true,
-      countryCode: "US",
-    },
-    startUrls: [
-      {
-        url: ebayUrl,
-      },
-    ],
+    proxy: { useApifyProxy: true, countryCode: "US" },
+    startUrls: [{ url: ebayUrl }],
   };
 
   const runRes = await fetch(
@@ -575,18 +538,11 @@ async function scrapeEbayListings(query: string): Promise<AnalyzedOffer[]> {
   }
 
   if (run.status !== "SUCCEEDED") {
-    console.error(
-      "❌ Apify eBay run did not succeed:",
-      run.status,
-      run.statusMessage
-    );
+    console.error("❌ Apify eBay run did not succeed:", run.status, run.statusMessage);
     throw new Error(run.statusMessage || "eBay scraper failed");
   }
 
-  const datasetId =
-    run.defaultDatasetId ||
-    run.output?.defaultDatasetId ||
-    run.defaultDatasetId;
+  const datasetId = run.defaultDatasetId || run.output?.defaultDatasetId || run.defaultDatasetId;
 
   if (!datasetId) {
     console.error("❌ No datasetId found on eBay run:", run);
@@ -609,9 +565,7 @@ async function scrapeEbayListings(query: string): Promise<AnalyzedOffer[]> {
   const offers = rawItems.map(mapEbayItemToOffer);
 
   const uniqueMap = new Map<string, AnalyzedOffer>();
-  for (const o of offers) {
-    if (!uniqueMap.has(o.id)) uniqueMap.set(o.id, o);
-  }
+  for (const o of offers) if (!uniqueMap.has(o.id)) uniqueMap.set(o.id, o);
 
   return Array.from(uniqueMap.values());
 }
@@ -627,16 +581,16 @@ type AiPricingResult = {
   sellTimeDaysMin?: number | null;
   sellTimeDaysMax?: number | null;
   ignore?: boolean | null;
+
+  // NEW:
+  priceRangeLow?: number | null;
+  priceRangeHigh?: number | null;
+  maxBuyPrice?: number | null; // “deal line”
 };
 
-type AiPricingEnvelope =
-  | { items?: AiPricingResult[] }
-  | { results?: AiPricingResult[] }
-  | AiPricingResult[];
+type AiPricingEnvelope = { items?: AiPricingResult[] };
 
-async function getAiPricingAndDemand(
-  listings: AnalyzedOffer[]
-): Promise<Record<string, AiPricingResult>> {
+async function getAiPricingAndDemand(listings: AnalyzedOffer[]): Promise<Record<string, AiPricingResult>> {
   try {
     if (!OPENAI_API_KEY || listings.length === 0) return {};
 
@@ -651,50 +605,55 @@ async function getAiPricingAndDemand(
       location: l.location ?? null,
     }));
 
+    // VERY STRICT JSON-only instruction (helps prevent malformed JSON)
     const prompt = `
-You are a professional reseller and pawn-shop buyer who works across ALL categories:
-- luxury & mid-range watches
-- sneakers and athletic shoes
-- streetwear and designer clothing
-- golf clubs and sports equipment
-- electronics, collectibles, and general resale inventory.
+You are a strict JSON pricing engine for flipping. Return ONLY valid JSON.
 
-You receive an array of listings with:
+You receive listings:
 - id
 - title
-- price (current listing price)
-- source (e.g. "Facebook Marketplace", "eBay", etc.)
-- location (optional)
+- price (ask)
+- source
+- location
 
 For EACH listing:
-1. Think like a *disciplined* reseller who actually flips items for profit.
-2. Estimate a realistic **trueMarketPrice** for the exact product in the listing:
-   - what you would expect it to SELL FOR in the current market (not ask price).
-   - ignore obvious troll prices and hype.
-3. Assume normal condition unless the title clearly says otherwise (e.g. beaters, damaged).
-4. If price is obviously insane (e.g. $145 for Nike x Louis Vuitton collab), you may still give a rough trueMarketPrice but set ignore=true if it's clearly not a buy.
+- Estimate trueMarketPrice (what it will SELL for in the current market).
+- Provide confidence (0..1).
+- Provide a conservative price range: priceRangeLow, priceRangeHigh.
+- Provide maxBuyPrice: the highest price you'd pay to target at least ~$40 profit after 13% fees + $12 shipping.
+- Provide demandLabel (Low/Medium/High) and demandScore (1..5).
+- Provide sellTimeLabel and sellTimeDaysMin/Max.
+- Set ignore=true if the listing is clearly not real / troll / wrong item.
 
-Respond **only** with valid JSON in this shape:
+Assumptions:
+- Fees = 13% of sale price
+- Shipping = $12
+- If title is vague (e.g. "Jordan shoes"), be conservative and reduce confidence.
+
+Return ONLY this JSON shape:
 {
   "items": [
     {
-      "id": "same id as input",
-      "trueMarketPrice": 140.0,
-      "confidence": 0.8,
+      "id": "same id",
+      "trueMarketPrice": 140,
+      "priceRangeLow": 120,
+      "priceRangeHigh": 160,
+      "maxBuyPrice": 75,
+      "confidence": 0.7,
       "demandLabel": "Medium",
       "demandScore": 3,
       "sellTimeLabel": "3-7 days",
       "sellTimeDaysMin": 3,
       "sellTimeDaysMax": 7,
       "ignore": false
-    },
-    ...
+    }
   ]
 }
 
-Do not include any extra top-level keys or text.
-Input listings JSON:
-${JSON.stringify(compact, null, 2)}
+NO extra keys. NO commentary. NO markdown.
+
+Input:
+${JSON.stringify(compact)}
 `;
 
     const completion = await openai.chat.completions.create({
@@ -704,64 +663,39 @@ ${JSON.stringify(compact, null, 2)}
         {
           role: "system",
           content:
-            "You are a strict, profit-focused reseller pricing engine. Always respond with valid JSON only.",
+            "Return ONLY valid JSON. No prose. No markdown. No trailing commas. Keep strings properly escaped.",
         },
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "user", content: prompt },
       ],
-      max_tokens: 1200,
-      temperature: 0.3,
+      max_tokens: 1600,
+      temperature: 0, // ✅ more stable JSON
     });
 
     const content = completion.choices[0]?.message?.content ?? '{"items": []}';
 
-    let envelope: AiPricingEnvelope;
-    try {
-      envelope = JSON.parse(content) as AiPricingEnvelope;
-    } catch (err) {
-      console.error("❌ Failed to parse AI pricing JSON:", err, content);
-      envelope = { items: [] };
+    const parsedObj = safeParseJsonObject<AiPricingEnvelope>(content);
+    if (!parsedObj) {
+      console.error("❌ Failed to parse AI pricing JSON. Raw:", content);
+      return {};
     }
 
-    let parsed: AiPricingResult[] = [];
-    if (Array.isArray(envelope)) {
-      parsed = envelope;
-    } else if (Array.isArray((envelope as any).items)) {
-      parsed = (envelope as any).items;
-    } else if (Array.isArray((envelope as any).results)) {
-      parsed = (envelope as any).results;
-    }
-
-    if (!Array.isArray(parsed)) {
-      console.warn("AI pricing JSON was not an array. Returning empty map.");
-      parsed = [];
-    }
-
+    const arr = Array.isArray(parsedObj.items) ? parsedObj.items : [];
     const map: Record<string, AiPricingResult> = {};
-    for (const row of parsed) {
-      if (!row || !row.id) continue;
+
+    for (const row of arr) {
+      if (!row?.id) continue;
       map[row.id] = {
         id: row.id,
-        trueMarketPrice:
-          typeof row.trueMarketPrice === "number"
-            ? row.trueMarketPrice
-            : null,
-        confidence:
-          typeof row.confidence === "number" ? row.confidence : null,
+        trueMarketPrice: typeof row.trueMarketPrice === "number" ? row.trueMarketPrice : null,
+        priceRangeLow: typeof row.priceRangeLow === "number" ? row.priceRangeLow : null,
+        priceRangeHigh: typeof row.priceRangeHigh === "number" ? row.priceRangeHigh : null,
+        maxBuyPrice: typeof row.maxBuyPrice === "number" ? row.maxBuyPrice : null,
+        confidence: typeof row.confidence === "number" ? row.confidence : null,
         demandLabel: row.demandLabel ?? null,
-        demandScore:
-          typeof row.demandScore === "number" ? row.demandScore : null,
+        demandScore: typeof row.demandScore === "number" ? row.demandScore : null,
         sellTimeLabel: row.sellTimeLabel ?? null,
-        sellTimeDaysMin:
-          typeof row.sellTimeDaysMin === "number"
-            ? row.sellTimeDaysMin
-            : null,
-        sellTimeDaysMax:
-          typeof row.sellTimeDaysMax === "number"
-            ? row.sellTimeDaysMax
-            : null,
+        sellTimeDaysMin: typeof row.sellTimeDaysMin === "number" ? row.sellTimeDaysMin : null,
+        sellTimeDaysMax: typeof row.sellTimeDaysMax === "number" ? row.sellTimeDaysMax : null,
         ignore: !!row.ignore,
       };
     }
@@ -783,10 +717,7 @@ type AiAuthenticityResult = {
   blockFromResults?: boolean | null;
 };
 
-type AiAuthenticityEnvelope =
-  | { items?: AiAuthenticityResult[] }
-  | { results?: AiAuthenticityResult[] }
-  | AiAuthenticityResult[];
+type AiAuthenticityEnvelope = { items?: AiAuthenticityResult[] };
 
 async function getAiAuthenticityJudgments(
   listings: AnalyzedOffer[]
@@ -805,29 +736,12 @@ async function getAiAuthenticityJudgments(
     }));
 
     const prompt = `
-You are an Authenticity & Fraud Detection Engine for a flipping marketplace.
+Return ONLY valid JSON.
 
-You get an array of items with:
-- id
-- title
-- price
-- source
-- url
+You are an authenticity + scam risk engine for flips.
+Flag obvious fakes, scam pricing, and suspicious listings.
 
-Your job is to aggressively flag:
-- obvious fake luxury items (e.g. Nike x Louis Vuitton at $145)
-- scammy pricing
-- anything that feels off for a normal marketplace.
-
-For EACH item, return:
-- id
-- isLikelyAuthentic (true/false)
-- riskLevel ("low" | "medium" | "high")
-- warnings (array of short strings)
-- explanation (short human-readable reason)
-- blockFromResults (true if we should NOT show this listing at all)
-
-Respond **only** with JSON in this shape:
+Return ONLY:
 {
   "items": [
     {
@@ -837,13 +751,14 @@ Respond **only** with JSON in this shape:
       "warnings": [],
       "explanation": "Normal pricing and branding.",
       "blockFromResults": false
-    },
-    ...
+    }
   ]
 }
 
-Input listings JSON:
-${JSON.stringify(compact, null, 2)}
+NO extra keys. NO text. NO markdown.
+
+Input:
+${JSON.stringify(compact)}
 `;
 
     const completion = await openai.chat.completions.create({
@@ -853,59 +768,34 @@ ${JSON.stringify(compact, null, 2)}
         {
           role: "system",
           content:
-            "You are a strict authenticity filter. Protect users from fakes and scams. Always respond with valid JSON only.",
+            "Return ONLY valid JSON. No prose. No markdown. No trailing commas. Keep strings properly escaped.",
         },
-        {
-          role: "user",
-          content: prompt,
-        },
+        { role: "user", content: prompt },
       ],
       max_tokens: 1200,
-      temperature: 0.1,
+      temperature: 0, // ✅ more stable JSON
     });
 
     const content = completion.choices[0]?.message?.content ?? '{"items": []}';
 
-    let envelope: AiAuthenticityEnvelope;
-    try {
-      envelope = JSON.parse(content) as AiAuthenticityEnvelope;
-    } catch (err) {
-      console.error("❌ Failed to parse AI authenticity JSON:", err, content);
-      envelope = { items: [] };
+    const parsedObj = safeParseJsonObject<AiAuthenticityEnvelope>(content);
+    if (!parsedObj) {
+      console.error("❌ Failed to parse AI authenticity JSON. Raw:", content);
+      return {};
     }
 
-    let parsed: AiAuthenticityResult[] = [];
-    if (Array.isArray(envelope)) {
-      parsed = envelope;
-    } else if (Array.isArray((envelope as any).items)) {
-      parsed = (envelope as any).items;
-    } else if (Array.isArray((envelope as any).results)) {
-      parsed = (envelope as any).results;
-    }
-
-    if (!Array.isArray(parsed)) {
-      console.warn(
-        "AI authenticity JSON was not an array. Returning empty map."
-      );
-      parsed = [];
-    }
-
+    const arr = Array.isArray(parsedObj.items) ? parsedObj.items : [];
     const map: Record<string, AiAuthenticityResult> = {};
-    for (const row of parsed) {
-      if (!row || !row.id) continue;
+
+    for (const row of arr) {
+      if (!row?.id) continue;
       map[row.id] = {
         id: row.id,
-        isLikelyAuthentic:
-          typeof row.isLikelyAuthentic === "boolean"
-            ? row.isLikelyAuthentic
-            : null,
+        isLikelyAuthentic: typeof row.isLikelyAuthentic === "boolean" ? row.isLikelyAuthentic : null,
         riskLevel: row.riskLevel ?? null,
         warnings: Array.isArray(row.warnings) ? row.warnings : null,
         explanation: row.explanation ?? null,
-        blockFromResults:
-          typeof row.blockFromResults === "boolean"
-            ? row.blockFromResults
-            : null,
+        blockFromResults: typeof row.blockFromResults === "boolean" ? row.blockFromResults : null,
       };
     }
 
@@ -924,10 +814,7 @@ export async function POST(req: Request) {
     const site = (body.site || "any") as string;
 
     if (!query) {
-      return NextResponse.json(
-        { error: "Missing query" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing query" }, { status: 400 });
     }
 
     const issues: string[] = [];
@@ -977,34 +864,23 @@ export async function POST(req: Request) {
     console.log("📦 Listings count (pre-AI):", listings.length);
 
     // Internal stats first (NO Google averages any more)
-    const {
-      listings: withInternalStats,
-      stats,
-    } = addStatsAndDiscounts(listings);
+    const { listings: withInternalStats, stats } = addStatsAndDiscounts(listings);
 
-    console.log(
-      "🔍 After internal stats, listings count:",
-      withInternalStats.length
-    );
+    console.log("🔍 After internal stats, listings count:", withInternalStats.length);
 
     // 🧹 Basic pre-AI sanity filter
     const prelimFilteredListings = withInternalStats.filter((l) => {
       const price = l.price;
-
       if (price == null || price <= 0) return false;
 
       const avg = l.productMarketStats?.average ?? null;
       if (avg == null || avg <= 0) return true;
 
       const ratio = price / avg;
-      // Keep only roughly within [0.15x, 4x] of internal average
       return ratio >= OUTLIER_MIN_RATIO && ratio <= OUTLIER_MAX_RATIO;
     });
 
-    console.log(
-      "🧹 After basic price filter (pre-AI), listings count:",
-      prelimFilteredListings.length
-    );
+    console.log("🧹 After basic price filter (pre-AI), listings count:", prelimFilteredListings.length);
 
     if (prelimFilteredListings.length === 0) {
       const filteredStatsEmpty: SearchResponse["priceStats"] = {
@@ -1022,10 +898,8 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🤖 AI authenticity + pricing (per listing, like a pro buyer)
-    const authenticityMap = await getAiAuthenticityJudgments(
-      prelimFilteredListings
-    );
+    // 🤖 AI authenticity + pricing (per listing)
+    const authenticityMap = await getAiAuthenticityJudgments(prelimFilteredListings);
     const aiMap = await getAiPricingAndDemand(prelimFilteredListings);
 
     // Merge AI data
@@ -1034,65 +908,61 @@ export async function POST(req: Request) {
       const auth = authenticityMap[l.id];
 
       const price = l.price ?? 0;
-      const baseFees =
-        l.estimatedFees != null ? l.estimatedFees : price * PLATFORM_FEE_RATE;
-      const baseShipping =
-        l.estimatedShipping != null
-          ? l.estimatedShipping
-          : SHIPPING_ESTIMATE;
+      const baseFees = l.estimatedFees != null ? l.estimatedFees : price * PLATFORM_FEE_RATE;
+      const baseShipping = l.estimatedShipping != null ? l.estimatedShipping : SHIPPING_ESTIMATE;
 
       let aiProfit: number | null = null;
       let aiRoi: number | null = null;
-      let effectiveTrueValue: number | null = null;
 
-      if (ai?.trueMarketPrice != null && price > 0) {
-        effectiveTrueValue = ai.trueMarketPrice;
-        const profit = ai.trueMarketPrice - price - baseFees - baseShipping;
+      // ✅ Use AI trueMarketPrice when available
+      const trueValue = ai?.trueMarketPrice ?? null;
+
+      if (trueValue != null && price > 0) {
+        const profit = trueValue - price - baseFees - baseShipping;
         const roi = (profit / price) * 100;
         aiProfit = profit;
         aiRoi = roi;
       }
 
-      // Fallback: if AI didn't respond for this item, keep existing averages
-      if (effectiveTrueValue == null) {
-        effectiveTrueValue = l.productMarketStats?.average ?? null;
-      }
+      // Keep internal market stats separate (do NOT overwrite them with AI)
+      const internalAvg = l.productMarketStats?.average ?? null;
 
       const discountPct =
-        effectiveTrueValue && price > 0
-          ? ((effectiveTrueValue - price) / effectiveTrueValue) * 100
+        trueValue != null && price > 0
+          ? ((trueValue - price) / trueValue) * 100
           : l.discountPctVsProductMedian ?? l.discountPctVsMedian ?? null;
-
-      const trueValue = effectiveTrueValue;
 
       return {
         ...l,
         estimatedFees: baseFees,
         estimatedShipping: baseShipping,
-        estimatedProfit:
-          aiProfit != null ? aiProfit : l.estimatedProfit ?? null,
-        profitMarginPct:
-          aiRoi != null ? aiRoi : l.profitMarginPct ?? null,
-        productMarketStats: {
-          ...(l.productMarketStats || {
-            median: null,
-            min: null,
-            max: null,
-            average: null,
-          }),
-          average: trueValue,
-        },
+
+        // Profit/ROI should be AI-driven when available
+        estimatedProfit: aiProfit != null ? aiProfit : l.estimatedProfit ?? null,
+        profitMarginPct: aiRoi != null ? aiRoi : l.profitMarginPct ?? null,
+
+        // Internal stats remain internal
+        productMarketStats: l.productMarketStats ?? null,
         discountPctVsProductMedian: discountPct,
         discountPctVsMedian: discountPct,
+
+        // AI outputs
         aiTrueValue: trueValue,
-        aiEstimatedValue: trueValue, // <- what UI uses
+        aiEstimatedValue: trueValue ?? internalAvg, // UI shows AI when possible, else internal avg
         aiConfidence: ai?.confidence ?? null,
         aiDemandScore: ai?.demandScore ?? null,
         aiSellTimeDaysMin: ai?.sellTimeDaysMin ?? null,
         aiSellTimeDaysMax: ai?.sellTimeDaysMax ?? null,
         aiShouldIgnore: ai?.ignore ?? false,
+
+        aiPriceRangeLow: ai?.priceRangeLow ?? null,
+        aiPriceRangeHigh: ai?.priceRangeHigh ?? null,
+        aiMaxBuyPrice: ai?.maxBuyPrice ?? null,
+
         demandLabel: ai?.demandLabel ?? l.demandLabel ?? null,
         estimatedSellTime: ai?.sellTimeLabel ?? l.estimatedSellTime ?? null,
+
+        // Authenticity
         aiIsLikelyAuthentic: auth?.isLikelyAuthentic ?? null,
         aiRiskLevel: auth?.riskLevel ?? null,
         aiAuthenticityWarnings: auth?.warnings ?? null,
@@ -1104,7 +974,7 @@ export async function POST(req: Request) {
     // 🧹 FINAL FILTER:
     // - drop AI-ignore
     // - drop authenticity blocks/high risk
-    // - drop <=0 ROI based on AI true value
+    // - drop <=0 ROI based on AI true value (or internal fallback)
     const filteredListings = listingsWithAi.filter((l) => {
       if (l.aiShouldIgnore) return false;
       if (l.aiBlockFromResults) return false;
@@ -1114,18 +984,14 @@ export async function POST(req: Request) {
     });
 
     console.log(
-      "🧹 After AI ignore + authenticity + ROI>0 (AI true value) filter, listings count:",
+      "🧹 After AI ignore + authenticity + ROI>0 filter, listings count:",
       filteredListings.length
     );
 
-    // Use AI-estimated values for the overall stats
+    // Use AI-estimated values for the overall stats (fallback to internal avg then price)
     const overallEstimates: number[] = filteredListings
       .map((l) => {
-        const v =
-          l.aiEstimatedValue ??
-          l.aiTrueValue ??
-          l.productMarketStats?.average ??
-          l.price;
+        const v = l.aiEstimatedValue ?? l.productMarketStats?.average ?? l.price;
         return typeof v === "number" && !Number.isNaN(v) ? v : null;
       })
       .filter((v): v is number => v !== null);
@@ -1146,9 +1012,6 @@ export async function POST(req: Request) {
     return NextResponse.json(res, { status: 200 });
   } catch (err: any) {
     console.error("Unexpected error in search route:", err);
-    return NextResponse.json(
-      { error: err?.message || "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message || "Internal server error" }, { status: 500 });
   }
 }
