@@ -116,9 +116,14 @@ export default function HomePage() {
         throw new Error((data as any).error || "Failed to fetch offers");
 
       let enriched: EnrichedOffer[] = (data.listings || []).map((offer) => {
+        // ✅ FIX: route returns trueMarketPrice, so use it as a fallback.
+        const o: any = offer as any;
+
         const estValue =
           typeof offer.aiEstimatedValue === "number"
             ? offer.aiEstimatedValue
+            : typeof o.trueMarketPrice === "number"
+            ? o.trueMarketPrice
             : offer.productMarketStats?.average != null
             ? offer.productMarketStats.average
             : null;
@@ -133,6 +138,13 @@ export default function HomePage() {
 
         return {
           ...offer,
+          // ✅ FIX: route may use sellTimeLabel; map it into what UI uses.
+          estimatedSellTime:
+            offer.estimatedSellTime ?? (typeof o.sellTimeLabel === "string" ? o.sellTimeLabel : null),
+          // demandLabel already matches, but keep as-is.
+          demandLabel:
+            offer.demandLabel ?? (typeof o.demandLabel === "string" ? o.demandLabel : null),
+
           profitVsAvg,
           roiVsAvg,
           aiEstimatedValue: estValue,
